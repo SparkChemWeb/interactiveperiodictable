@@ -1,0 +1,233 @@
+[
+  {
+    "symbol": "H⁺",
+    "charge": 1,
+    "name": "Hydrogen ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not applicable",
+      "hydroxide": "Not applicable",
+      "ammonia": "Not applicable",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Li⁺",
+    "charge": 1,
+    "name": "Lithium ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Crimson (bright red)",
+      "hydroxide": "No precipitate",
+      "ammonia": "No precipitate",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Be²⁺",
+    "charge": 2,
+    "name": "Beryllium ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not characteristic",
+      "hydroxide": "White precipitate, soluble in excess NaOH (amphoteric)",
+      "ammonia": "White precipitate, insoluble in excess NH₃",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Na⁺",
+    "charge": 1,
+    "name": "Sodium ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Yellow (persistent, intense)",
+      "hydroxide": "No precipitate",
+      "ammonia": "No precipitate",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Mg²⁺",
+    "charge": 2,
+    "name": "Magnesium ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not characteristic",
+      "hydroxide": "White precipitate (insoluble in excess)",
+      "ammonia": "White precipitate (insoluble in excess)",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Al³⁺",
+    "charge": 3,
+    "name": "Aluminium ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not characteristic",
+      "hydroxide": "White precipitate, soluble in excess NaOH",
+      "ammonia": "White precipitate, insoluble in excess NH₃",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Ca²⁺",
+    "charge": 2,
+    "name": "Calcium ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Orange‑red / brick red",
+      "hydroxide": "White precipitate (insoluble in excess)",
+      "ammonia": "No precipitate (or very slight white)",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Cr³⁺",
+    "charge": 3,
+    "name": "Chromium(III) ion",
+    "colour": "green (in solution)",
+    "tests": {
+      "flame": "Not characteristic",
+      "hydroxide": "Grey‑green precipitate (amphoteric, soluble in excess NaOH)",
+      "ammonia": "Grey‑green precipitate (slightly soluble in excess NH₃)",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Mn²⁺",
+    "charge": 2,
+    "name": "Manganese(II) ion",
+    "colour": "pale pink",
+    "tests": {
+      "flame": "Not characteristic",
+      "hydroxide": "Light brown precipitate (turns brown in air)",
+      "ammonia": "Light brown precipitate (insoluble in excess)",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Fe²⁺",
+    "charge": 2,
+    "name": "Iron(II) ion",
+    "colour": "pale green",
+    "tests": {
+      "flame": "Not characteristic",
+      "hydroxide": "Green precipitate (turns brown at surface in air)",
+      "ammonia": "Green precipitate (turns brown at surface in air)",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Fe³⁺",
+    "charge": 3,
+    "name": "Iron(III) ion",
+    "colour": "yellow‑brown",
+    "tests": {
+      "flame": "Not characteristic",
+      "hydroxide": "Red‑brown precipitate",
+      "ammonia": "Red‑brown precipitate",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Co²⁺",
+    "charge": 2,
+    "name": "Cobalt(II) ion",
+    "colour": "pink (aqueous)",
+    "tests": {
+      "flame": "Not characteristic",
+      "hydroxide": "Blue precipitate (pink if hydrated)",
+      "ammonia": "Blue precipitate, soluble in excess NH₃ → deep blue solution",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Ni²⁺",
+    "charge": 2,
+    "name": "Nickel(II) ion",
+    "colour": "green",
+    "tests": {
+      "flame": "Not characteristic",
+      "hydroxide": "Green precipitate",
+      "ammonia": "Green precipitate, soluble in excess NH₃ → blue solution",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Cu²⁺",
+    "charge": 2,
+    "name": "Copper(II) ion",
+    "colour": "blue",
+    "tests": {
+      "flame": "Blue‑green",
+      "hydroxide": "Light blue precipitate",
+      "ammonia": "Light blue precipitate, soluble in excess NH₃ → deep blue solution",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Zn²⁺",
+    "charge": 2,
+    "name": "Zinc ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not characteristic",
+      "hydroxide": "White precipitate, soluble in excess NaOH",
+      "ammonia": "White precipitate, soluble in excess NH₃",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "Cl⁻",
+    "charge": -1,
+    "name": "Chloride ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not applicable",
+      "hydroxide": "Not applicable",
+      "ammonia": "Not applicable",
+      "anionTests": [
+        {
+          "reagent": "Silver nitrate solution + dilute nitric acid",
+          "observation": "White precipitate (silver chloride)"
+        }
+      ]
+    }
+  },
+  {
+    "symbol": "F⁻",
+    "charge": -1,
+    "name": "Fluoride ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not applicable",
+      "hydroxide": "Not applicable",
+      "ammonia": "Not applicable",
+      "anionTests": [
+        {
+          "reagent": "Silver nitrate solution + dilute nitric acid",
+          "observation": "No precipitate (silver fluoride is soluble)"
+        }
+      ]
+    }
+  },
+  {
+    "symbol": "S²⁻",
+    "charge": -2,
+    "name": "Sulfide ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not applicable",
+      "hydroxide": "Not applicable",
+      "ammonia": "Not applicable",
+      "anionTests": [
+        {
+          "reagent": "Dilute hydrochloric acid",
+          "observation": "Turns damp lead(II) acetate paper black (toxic gas)"
+        }
+      ]
+    }
+  }
+]

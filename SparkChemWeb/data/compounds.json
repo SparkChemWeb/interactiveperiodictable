@@ -1,0 +1,17 @@
+[
+  { "formula": "H₂O",  "meltingPoint": 0,   "boilingPoint": 100,  "molecularMass": 18.02, "description": "Colourless liquid, essential for life. Freezes at 0 °C, boils at 100 °C." },
+  { "formula": "CO₂",  "meltingPoint": -78, "boilingPoint": -57,  "molecularMass": 44.01, "description": "Colourless gas. Turns limewater milky. Sublimes at −78 °C (dry ice)." },
+  { "formula": "H₂",   "meltingPoint": -259,"boilingPoint": -253, "molecularMass": 2.02,  "description": "Colourless, odourless gas. Highly flammable. Lightest element." },
+  { "formula": "HCl",  "meltingPoint": -114,"boilingPoint": -85,  "molecularMass": 36.46, "description": "Colourless gas with a sharp smell. Dissolves in water to form hydrochloric acid." },
+  { "formula": "NH₃",  "meltingPoint": -78, "boilingPoint": -33,  "molecularMass": 17.03, "description": "Colourless gas with pungent odour. Turns damp red litmus blue. Used in fertilisers." },
+  { "formula": "NaOH", "meltingPoint": 318, "boilingPoint": 1388, "molecularMass": 40.00, "description": "White solid. Strong alkali, highly soluble in water. Used in soap making." },
+  { "formula": "NaCl", "meltingPoint": 801, "boilingPoint": 1413, "molecularMass": 58.44, "description": "White crystalline solid. Common table salt. Soluble in water." },
+  { "formula": "KCl",  "meltingPoint": 770, "boilingPoint": 1420, "molecularMass": 74.55, "description": "White solid. Soluble in water. Used as a salt substitute." },
+  { "formula": "CaCl₂","meltingPoint": 772, "boilingPoint": 1935, "molecularMass": 110.98,"description": "White solid. Absorbs moisture. Used in de‑icing roads." },
+  { "formula": "MgO",  "meltingPoint": 2852,"boilingPoint": 3600, "molecularMass": 40.30, "description": "White powder. High melting point. Used as a refractory material." },
+  { "formula": "CaO",  "meltingPoint": 2572,"boilingPoint": 2850, "molecularMass": 56.08, "description": "White solid. Reacts vigorously with water (slaked lime). Used in cement." },
+  { "formula": "Fe₂O₃","meltingPoint": 1565,"boilingPoint": null, "molecularMass": 159.69,"description": "Red‑brown solid. Main ore of iron. Used as pigment." },
+  { "formula": "SO₂",  "meltingPoint": -72, "boilingPoint": -10,  "molecularMass": 64.06, "description": "Colourless gas with a choking smell. Turns acidified potassium dichromate green." },
+  { "formula": "NO₂",  "meltingPoint": -11, "boilingPoint": 21,   "molecularMass": 46.01, "description": "Brown gas. Toxic. Responsible for acid rain." },
+  { "formula": "CO",   "meltingPoint": -205,"boilingPoint": -191, "molecularMass": 28.01, "description": "Colourless, odourless gas. Highly toxic. Incomplete combustion product." }
+]

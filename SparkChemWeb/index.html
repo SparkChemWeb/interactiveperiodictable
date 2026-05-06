@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SparkChemWeb</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header Row with Atom/Ion and Clear All -->
+    <div class="header-row">
+        <div class="header-left">
+            <button id="mode-atom" class="mode-btn active">Atom</button>
+            <button id="mode-ion" class="mode-btn">Ion</button>
+        </div>
+        <h1>🧪 Periodic Table 🧪</h1>
+        <div class="header-right">
+            <button id="clear-all" class="clear-btn">Clear All</button>
+        </div>
+    </div>
+
+    <!-- Wrap ALL table content in one container for view toggling -->
+    <div id="table-view">
+        <!-- Relative wrapper for overlay controls AND product cards -->
+        <div class="table-relative-wrapper">
+            <!-- Temperature Slider Overlay -->
+            <div class="temp-overlay">
+                <span>🌡️ Temperature</span>
+                <input type="range" id="temp-slider" min="-273" max="1000" value="25" step="1">
+                <span id="temp-display">25°C</span>
+            </div>
+            <!-- Pressure Slider Overlay -->
+            <div class="pressure-overlay">
+                <span>🎈 Pressure</span>
+                <input type="range" id="pressure-slider" min="1" max="200" value="101" step="1">
+                <span id="pressure-display">101 kPa</span>
+            </div>
+            <!-- Catalyst Dropdown Overlay -->
+            <div class="catalyst-overlay">
+                <span>⭐ Catalyst</span>
+                <select id="catalyst-select">
+                    <option value="none">None</option>
+                    <option value="MnO2">Manganese(IV) oxide</option>
+                    <option value="Fe">Iron</option>
+                    <option value="V2O5">Vanadium(V) oxide</option>
+                    <option value="Pt">Platinum</option>
+                    <option value="H3PO4">Phosphoric acid</option>
+                    <option value="H2SO4">Conc. sulfuric acid</option>
+                </select>
+            </div>
+
+            <!-- Main Table with Group and Period Labels -->
+            <div class="table-wrapper">
+                <!-- Group Numbers Row -->
+                <div class="group-labels">
+                    <div class="corner-spacer"></div>
+                    <div class="group-label">I</div>
+                    <div class="group-label">II</div>
+                    <div class="group-label"></div>   <!-- 3 -->
+                    <div class="group-label"></div>   <!-- 4 -->
+                    <div class="group-label"></div>   <!-- 5 -->
+                    <div class="group-label"></div>   <!-- 6 -->
+                    <div class="group-label"></div>   <!-- 7 -->
+                    <div class="group-label"></div>   <!-- 8 -->
+                    <div class="group-label"></div>   <!-- 9 -->
+                    <div class="group-label"></div>   <!-- 10 -->
+                    <div class="group-label"></div>   <!-- 11 -->
+                    <div class="group-label"></div>   <!-- 12 -->
+                    <div class="group-label">III</div>
+                    <div class="group-label">IV</div>
+                    <div class="group-label">V</div>
+                    <div class="group-label">VI</div>
+                    <div class="group-label">VII</div>
+                    <div class="group-label">VIII</div>
+                </div>
+
+                <!-- Grid with Period Labels -->
+                <div class="periodic-table-container">
+                    <!-- Period labels column -->
+                    <div class="period-labels">
+                        <div class="period-label">1</div>
+                        <div class="period-label">2</div>
+                        <div class="period-label">3</div>
+                        <div class="period-label">4</div>
+                        <div class="period-label">5</div>
+                        <div class="period-label">6</div>
+                        <div class="period-label">7</div>
+                    </div>
+
+                    <!-- The actual main grid -->
+                    <div id="periodic-table" class="periodic-table-grid"></div>
+                </div>
+            </div>
+
+            <!-- Lanthanides Row (aligned with main table) -->
+            <div style="margin-top: 5px;">
+                <div class="periodic-table-container">
+                    <div class="f-block-spacer"></div>
+                    <div id="lanthanides-grid" class="periodic-table-grid f-block-grid"></div>
+                </div>
+            </div>
+
+            <!-- Actinides Row (aligned with main table) -->
+            <div style="margin-top: 5px;">
+                <div class="periodic-table-container">
+                    <div class="f-block-spacer"></div>
+                    <div id="actinides-grid" class="periodic-table-grid f-block-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== ION PALETTE ROW ========== -->
+        <div id="ion-palette" style="margin-top: 10px;">
+            <div class="palette-grid-wrapper">
+                <div id="palette-grid" class="palette-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== REACTION LOG (outside #table-view) ========== -->
+    <div id="reaction-log">
+        <h3>📋 Reaction Log</h3>
+        <div id="log-entries"></div>
+    </div>
+
+    <!-- Element Detail View (Hidden by default) -->
+    <div id="element-detail" class="detail-view" style="display: none;">
+        <button id="back-to-table">← Back to Table</button>
+        <div class="detail-header">
+            <h2 id="detail-symbol"></h2>
+            <h1 id="detail-name"></h1>
+        </div>
+        <div class="detail-content">
+            <div class="detail-image-container">
+                <img id="detail-image" src="" alt="Element image">
+                <p id="no-image-message" style="display: none;">[Image coming soon]</p>
+            </div>
+            <div class="detail-properties">
+                <div class="property-row"><span class="property-label">Atomic Number:</span><span class="property-value" id="detail-atomic-number"></span></div>
+                <div class="property-row"><span class="property-label">Atomic Mass:</span><span class="property-value" id="detail-atomic-mass"></span></div>
+                <div class="property-row"><span class="property-label">Group:</span><span class="property-value" id="detail-group"></span></div>
+                <div class="property-row"><span class="property-label">Period:</span><span class="property-value" id="detail-period"></span></div>
+                <div class="property-row"><span class="property-label">Block:</span><span class="property-value" id="detail-block"></span></div>
+                <div class="property-row"><span class="property-label">Electron Configuration:</span><span class="property-value" id="detail-electron-config"></span></div>
+                <div class="property-row"><span class="property-label">Melting Point:</span><span class="property-value" id="detail-melting-point"></span></div>
+                <div class="property-row"><span class="property-label">Boiling Point:</span><span class="property-value" id="detail-boiling-point"></span></div>
+                <div class="property-row"><span class="property-label">Electronegativity:</span><span class="property-value" id="detail-electronegativity"></span></div>
+                <div class="property-row"><span class="property-label">Oxidation States:</span><span class="property-value" id="detail-oxidation-states"></span></div>
+                <div class="property-row"><span class="property-label">Common Ions:</span><span class="property-value" id="detail-ions"></span></div>
+                <div class="property-row"><span class="property-label">Category:</span><span class="property-value" id="detail-category"></span></div>
+            </div>
+        </div>
+        <div class="detail-description">
+            <h3>Description</h3>
+            <p id="detail-description"></p>
+        </div>
+    </div>
+
+    <!-- Product Info Pop‑up -->
+    <div id="product-popup" class="product-popup" style="display: none;">
+        <div class="product-popup-content">
+            <span id="product-popup-close" class="product-popup-close">&times;</span>
+            <h3 id="product-popup-symbol"></h3>
+            <p id="product-popup-name"></p>
+            <table class="product-popup-table">
+                <tr><td><strong>Formula:</strong></td><td id="product-popup-formula"></td></tr>
+                <tr><td><strong>Molecular Mass:</strong></td><td id="product-popup-mass"></td></tr>
+                <tr><td><strong>State:</strong></td><td id="product-popup-state"></td></tr>
+                <tr><td><strong>Reaction Type:</strong></td><td id="product-popup-type"></td></tr>
+                <tr><td><strong>Description:</strong></td><td id="product-popup-description"></td></tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Ion Info Pop‑up -->
+    <div id="ion-popup" class="ion-popup" style="display: none;">
+        <div class="ion-popup-content">
+            <span id="ion-popup-close" class="ion-popup-close">&times;</span>
+            <h3 id="ion-popup-symbol"></h3>
+            <p id="ion-popup-name"></p>
+            <table class="ion-popup-table">
+                <tr><td><strong>Colour:</strong></td><td id="ion-popup-colour"></td></tr>
+                <tr><td><strong>Flame test:</strong></td><td id="ion-popup-flame"></td></tr>
+                <tr><td><strong>With NaOH:</strong></td><td id="ion-popup-hydroxide"></td></tr>
+                <tr><td><strong>With NH₃(aq):</strong></td><td id="ion-popup-ammonia"></td></tr>
+                <tr><td><strong>Anion tests:</strong></td><td id="ion-popup-anion"></td></tr>
+            </table>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
