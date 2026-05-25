@@ -21,13 +21,13 @@ let reactionLogEntries = [];
 
 let cardSize = 80;
 
-// IGCSE Solubility Rules
+// IGCSE Solubility Rules (fallback)
 const solubilityRules = {
-    alwaysSoluble: ['Na⁺', 'K⁺', 'NH₄⁺', 'NO₃⁻'],
-    halides: { soluble: true, exceptions: ['Ag⁺', 'Pb²⁺'] },
-    sulfates: { soluble: true, exceptions: ['Ca²⁺', 'Ba²⁺', 'Pb²⁺'] },
+    alwaysSoluble: ['Na', 'K', 'NH4', 'NO3'],
+    halides: { soluble: true, exceptions: ['Ag', 'Pb'] },
+    sulfates: { soluble: true, exceptions: ['Ca', 'Ba', 'Pb'] },
     carbonates: { soluble: false },
-    hydroxides: { soluble: false, exceptions: ['Na⁺', 'K⁺', 'Ca²⁺', 'NH₄⁺'] }
+    hydroxides: { soluble: false, exceptions: ['Na', 'K', 'Ca', 'NH4'] }
 };
 
 const paletteIons = [
@@ -40,7 +40,7 @@ const paletteIons = [
 ];
 
 // ============================================
-// OLD REACTION MAP
+// OLD REACTION MAP (element+element only)
 // ============================================
 const reactionMap = {
     "Na+Cl":       { symbol: "NaCl", name: "Sodium chloride", formula: "NaCl", type: "metal+halogen", balanced: "2Na + Cl₂ → 2NaCl" },
@@ -69,17 +69,41 @@ function classifyCompound(compound) {
     const name = (compound.name || '').toLowerCase();
     const formula = (compound.formula || compound.symbol || '').toLowerCase();
     if (name === 'water' || formula === 'h2o' || formula === 'h₂o') return 'water';
+    if (/^(h₂|n₂|o₂|f₂|cl₂|br₂|i₂)$/.test(formula) || name.includes('molecule')) {
+        const elemSymbol = formula.charAt(0).toUpperCase();
+        if (['F','Cl','Br','I'].includes(elemSymbol)) return 'halogen';
+        if (['H','N','O'].includes(elemSymbol)) return 'gas';
+        return 'gas';
+    }
     if (/^h[^2o]/.test(formula) || name.includes('acid')) return 'acid';
     if (name.endsWith('hydroxide') || /oh/i.test(formula)) return 'base';
     if (name.includes('carbonate') || /co3/i.test(formula)) return 'carbonate';
-    if (name.endsWith('oxide') || /o[^h]/i.test(formula)) return 'oxide';
+    if (name.endsWith('oxide') || /^[A-Z][a-z]?[₀₁₂₃₄₅₆₇₈₉]*O[₀₁₂₃₄₅₆₇₈₉]*$/.test(formula)) return 'oxide';
     return 'salt';
 }
 
 // ============================================
-// REACTION PATTERNS
+// getReactantCategory
+// ============================================
+function getReactantCategory(reactant) {
+    if (!reactant) return null;
+    if (reactant.atomicNumber) {
+        const cat = reactant.category || '';
+        if (/metal/.test(cat)) return 'metal';
+        if (cat === 'halogen') return 'halogen';
+        if (/nonmetal/.test(cat)) return 'nonmetal';
+        if (cat === 'noble gas') return 'noble gas';
+        if (cat === 'metalloid') return 'metalloid';
+        return 'element';
+    }
+    return classifyCompound(reactant);
+}
+
+// ============================================
+// REACTION PATTERNS (all order‑independent)
 // ============================================
 const reactionPatterns = [
+    // 1. Acid + Base
     {
         reactantTypes: ['acid', 'base'],
         description: 'Neutralisation',
@@ -90,18 +114,20 @@ const reactionPatterns = [
             const baseCation = getCationFromBase(base);
             const saltFormula = buildIonicFormula(baseCation, acidAnion);
             const saltName = buildSaltName(baseCation, acidAnion);
-            // salt is aqueous if soluble (all examples here are soluble)
-            const saltSolubility = checkSolubility(baseCation.root, acidAnion.root);
+            const saltSolubility = checkSolubility(baseCation.root, acidAnion.root, saltFormula);
             return [
                 { symbol: saltFormula, name: saltName, formula: saltFormula, type: 'salt', isAqueous: saltSolubility },
                 { symbol: 'H₂O', name: 'Water', formula: 'H₂O', type: 'water' }
             ];
         }
     },
+    // 2. Metal + Acid
     {
         reactantTypes: ['metal', 'acid'],
         description: 'Metal + Acid',
-        generateProducts: (metal, acid) => {
+        generateProducts: (reactantA, reactantB) => {
+            const metal = reactantA.category === 'metal' ? reactantA : reactantB;
+            const acid = reactantA.category === 'acid' ? reactantA : reactantB;
             const acidAnion = getAnionFromAcid(acid);
             const metalCation = {
                 symbol: metal.symbol + (metal.oxidationStates ? superscriptNumber(Math.abs(metal.oxidationStates[0])) : '⁺'),
@@ -110,17 +136,20 @@ const reactionPatterns = [
                 name: metal.name
             };
             const saltFormula = buildIonicFormula(metalCation, acidAnion);
-            const saltSolubility = checkSolubility(metalCation.root, acidAnion.root);
+            const saltSolubility = checkSolubility(metalCation.root, acidAnion.root, saltFormula);
             return [
                 { symbol: saltFormula, name: buildSaltName(metalCation, acidAnion), formula: saltFormula, type: 'salt', isAqueous: saltSolubility },
                 { symbol: 'H₂', name: 'Hydrogen', formula: 'H₂', type: 'gas' }
             ];
         }
     },
+    // 3. Metal Oxide + Acid
     {
         reactantTypes: ['oxide', 'acid'],
         description: 'Metal Oxide + Acid',
-        generateProducts: (oxide, acid) => {
+        generateProducts: (reactantA, reactantB) => {
+            const oxide = reactantA.category === 'oxide' ? reactantA : reactantB;
+            const acid = reactantA.category === 'acid' ? reactantA : reactantB;
             const acidAnion = getAnionFromAcid(acid);
             const metalName = oxide.name.replace(' oxide', '').replace('(II)', '').replace('(III)', '').trim();
             const metalElement = elementsData.find(el => el.name.toLowerCase() === metalName.toLowerCase());
@@ -132,17 +161,20 @@ const reactionPatterns = [
                 name: metalElement.name
             };
             const saltFormula = buildIonicFormula(metalCation, acidAnion);
-            const saltSolubility = checkSolubility(metalCation.root, acidAnion.root);
+            const saltSolubility = checkSolubility(metalCation.root, acidAnion.root, saltFormula);
             return [
                 { symbol: saltFormula, name: buildSaltName(metalCation, acidAnion), formula: saltFormula, type: 'salt', isAqueous: saltSolubility },
                 { symbol: 'H₂O', name: 'Water', formula: 'H₂O', type: 'water' }
             ];
         }
     },
+    // 4. Carbonate + Acid
     {
         reactantTypes: ['carbonate', 'acid'],
         description: 'Carbonate + Acid',
-        generateProducts: (carbonate, acid) => {
+        generateProducts: (reactantA, reactantB) => {
+            const carbonate = reactantA.category === 'carbonate' ? reactantA : reactantB;
+            const acid      = reactantA.category === 'acid'      ? reactantA : reactantB;
             const acidAnion = getAnionFromAcid(acid);
             const metalName = carbonate.name.replace(' carbonate', '').replace('(II)', '').replace('(III)', '').trim();
             const metalElement = elementsData.find(el => el.name.toLowerCase() === metalName.toLowerCase());
@@ -154,22 +186,171 @@ const reactionPatterns = [
                 name: metalElement.name
             };
             const saltFormula = buildIonicFormula(metalCation, acidAnion);
-            const saltSolubility = checkSolubility(metalCation.root, acidAnion.root);
+            const saltSolubility = checkSolubility(metalCation.root, acidAnion.root, saltFormula);
             return [
                 { symbol: saltFormula, name: buildSaltName(metalCation, acidAnion), formula: saltFormula, type: 'salt', isAqueous: saltSolubility },
                 { symbol: 'H₂O', name: 'Water', formula: 'H₂O', type: 'water' },
                 { symbol: 'CO₂', name: 'Carbon dioxide', formula: 'CO₂', type: 'gas' }
             ];
         }
+    },
+    // 5. Metal + Water (cold → hydroxide, steam → oxide)
+    {
+        reactantTypes: ['metal', 'water'],
+        description: 'Metal + Water',
+        generateProducts: (reactantA, reactantB) => {
+            const metal = reactantA.category === 'metal' ? reactantA : reactantB;
+            const water = reactantA.category === 'water' ? reactantA : reactantB;
+            const reactiveMetals = ['K', 'Na', 'Ca', 'Mg', 'Al', 'Zn', 'Fe'];
+            if (!reactiveMetals.includes(metal.symbol)) return null;
+            if (currentTemperature >= 100) {
+                const charge = metal.oxidationStates ? Math.abs(metal.oxidationStates[0]) : 1;
+                const oxideFormula = buildIonicFormula(
+                    { root: metal.symbol, charge, name: metal.name },
+                    { root: 'O', charge: -2, name: 'Oxide', symbol: 'O²⁻' }
+                );
+                return [
+                    { symbol: oxideFormula, name: metal.name + ' oxide', formula: oxideFormula, type: 'oxide' },
+                    { symbol: 'H₂', name: 'Hydrogen', formula: 'H₂', type: 'gas' }
+                ];
+            } else {
+                const charge = metal.oxidationStates ? Math.abs(metal.oxidationStates[0]) : 1;
+                const hydroxideFormula = buildIonicFormula(
+                    { root: metal.symbol, charge, name: metal.name },
+                    { root: 'OH', charge: -1, name: 'Hydroxide', symbol: 'OH⁻' }
+                );
+                const hydroxideSolubility = checkSolubility(metal.symbol, 'OH', hydroxideFormula);
+                return [
+                    { symbol: hydroxideFormula, name: metal.name + ' hydroxide', formula: hydroxideFormula, type: 'base', isAqueous: hydroxideSolubility },
+                    { symbol: 'H₂', name: 'Hydrogen', formula: 'H₂', type: 'gas' }
+                ];
+            }
+        }
+    },
+    // 6. Displacement (Metal + Salt)
+    {
+        reactantTypes: ['metal', 'salt'],
+        description: 'Displacement',
+        generateProducts: (reactantA, reactantB) => {
+            const metal = reactantA.category === 'metal' ? reactantA : reactantB;
+            const salt  = reactantA.category === 'salt'  ? reactantA : reactantB;
+            const reactivity = ['K','Na','Ca','Mg','Al','Zn','Fe','Pb','Cu','Ag','Au'];
+            if (!reactivity.includes(metal.symbol)) return null;
+            const saltCation = getCationFromFormula(salt.formula);
+            if (!saltCation) return null;
+            const saltMetal = elementsData.find(el => el.symbol === saltCation);
+            if (!saltMetal || !reactivity.includes(saltMetal.symbol)) return null;
+            if (reactivity.indexOf(metal.symbol) >= reactivity.indexOf(saltMetal.symbol)) return null;
+            const anion = getAnionFromFormula(salt.formula);
+            const anionObj = getAnionFromAcid({ formula: 'H' + anion });
+            const newSaltFormula = buildIonicFormula(
+                { root: metal.symbol, charge: metal.oxidationStates ? Math.abs(metal.oxidationStates[0]) : 1, name: metal.name },
+                anionObj
+            );
+            const newSaltSolubility = checkSolubility(metal.symbol, anionObj.root, newSaltFormula);
+            return [
+                { symbol: newSaltFormula, name: buildSaltName({ name: metal.name, root: metal.symbol }, anionObj), formula: newSaltFormula, type: 'salt', isAqueous: newSaltSolubility },
+                { symbol: saltMetal.symbol, name: saltMetal.name, formula: saltMetal.symbol, type: 'metal' }
+            ];
+        }
+    },
+    // 7. Halogen Displacement
+    {
+        reactantTypes: ['halogen', 'salt'],
+        description: 'Halogen Displacement',
+        generateProducts: (reactantA, reactantB) => {
+            const halogenReactant = reactantA.category === 'halogen' ? reactantA : reactantB;
+            const saltReactant    = reactantA.category === 'salt'    ? reactantA : reactantB;
+            if (halogenReactant.category !== 'halogen' || saltReactant.category !== 'salt') return null;
+            const halogenReactivity = ['F','Cl','Br','I'];
+            const halSymbol = (halogenReactant.symbol || '').replace(/[₂₃₄₅₆₇₈₉]/g, '');
+            const saltHalogen = (getAnionFromFormula(saltReactant.formula) || '').replace(/[₂₃₄₅₆₇₈₉]/g, '');
+            if (!saltHalogen || !halogenReactivity.includes(halSymbol) || !halogenReactivity.includes(saltHalogen)) return null;
+            if (halogenReactivity.indexOf(halSymbol) >= halogenReactivity.indexOf(saltHalogen)) return null;
+            const saltCation = getCationFromFormula(saltReactant.formula);
+            const newSaltFormula = buildIonicFormula(
+                { root: saltCation, charge: 1, name: saltCation },
+                { root: halSymbol, charge: -1, name: halSymbol + 'ide', symbol: halSymbol + '⁻' }
+            );
+            const newSaltSolubility = checkSolubility(saltCation, halSymbol, newSaltFormula);
+            return [
+                { symbol: newSaltFormula, name: saltCation + ' ' + halSymbol + 'ide', formula: newSaltFormula, type: 'salt', isAqueous: newSaltSolubility },
+                { symbol: saltHalogen + '₂', name: saltHalogen, formula: saltHalogen + '₂', type: 'gas' }
+            ];
+        }
+    },
+    // 8. Precipitation (double displacement) – guard against duplicate
+    {
+        reactantTypes: ['salt', 'salt'],
+        description: 'Precipitation',
+        generateProducts: (saltA, saltB) => {
+            const cationA = getCationFromFormula(saltA.formula);
+            const anionA = getAnionFromFormula(saltA.formula);
+            const cationB = getCationFromFormula(saltB.formula);
+            const anionB = getAnionFromFormula(saltB.formula);
+            if (!cationA || !anionA || !cationB || !anionB) return null;
+            if ((cationA === cationB && anionA === anionB) ||
+                (cationA === cationB && anionB === anionA)) {
+                return null;
+            }
+            const anionBObj = getAnionFromAcid({ formula: 'H' + anionB });
+            const anionAObj = getAnionFromAcid({ formula: 'H' + anionA });
+            const product1Formula = buildIonicFormula({ root: cationA, charge: 1, name: cationA }, anionBObj);
+            const product2Formula = buildIonicFormula({ root: cationB, charge: 1, name: cationB }, anionAObj);
+            const orig1 = saltA.formula;
+            const orig2 = saltB.formula;
+            if ((product1Formula === orig1 && product2Formula === orig2) ||
+                (product1Formula === orig2 && product2Formula === orig1)) {
+                return null;
+            }
+            const sol1 = checkSolubility(cationA, anionB, product1Formula);
+            const sol2 = checkSolubility(cationB, anionA, product2Formula);
+            return [
+                { symbol: product1Formula, name: cationA + ' ' + anionB + 'ide', formula: product1Formula, type: 'salt', isAqueous: sol1 },
+                { symbol: product2Formula, name: cationB + ' ' + anionA + 'ide', formula: product2Formula, type: 'salt', isAqueous: sol2 }
+            ];
+        }
+    },
+    // 9. Thermal Decomposition of Carbonates
+    {
+        reactantTypes: ['carbonate', null],
+        description: 'Thermal Decomposition',
+        singleReactant: true,
+        generateProducts: (carbonate) => {
+            if (carbonate.category !== 'carbonate') return null;
+            const metalName = carbonate.name.replace(' carbonate', '').replace('(II)', '').replace('(III)', '').trim();
+            const metalElement = elementsData.find(el => el.name.toLowerCase() === metalName.toLowerCase());
+            if (!metalElement) return null;
+            const oxideFormula = buildIonicFormula(
+                { root: metalElement.symbol, charge: metalElement.oxidationStates ? Math.abs(metalElement.oxidationStates[0]) : 2, name: metalElement.name },
+                { root: 'O', charge: -2, name: 'Oxide', symbol: 'O²⁻' }
+            );
+            const balanced = `${carbonate.symbol || carbonate.formula} → ${oxideFormula} + CO₂`;
+            return [
+                { symbol: oxideFormula, name: metalName + ' oxide', formula: oxideFormula, type: 'oxide', balanced },
+                { symbol: 'CO₂', name: 'Carbon dioxide', formula: 'CO₂', type: 'gas' }
+            ];
+        }
     }
 ];
 
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
 function getAnionFromAcid(acid) {
     const formula = acid.formula || acid.symbol || '';
-    const anionRoot = formula.replace(/^h/i, '').replace(/[₀₁₂₃₄₅₆₇₈₉]/g, '');
+    const withoutH = formula.replace(/^h/i, '');
+    const decoded = decodeSubscript(withoutH);
+    const rootDecoded = decoded.replace(/[₀₁₂₃₄₅₆₇₈₉]/g, '');
     const chargeMap = { 'Cl': -1, 'F': -1, 'Br': -1, 'I': -1, 'NO3': -1, 'SO4': -2, 'CO3': -2, 'PO4': -3 };
-    const charge = chargeMap[anionRoot] || -1;
-    return { symbol: anionRoot + (charge === -1 ? '⁻' : charge === -2 ? '²⁻' : '³⁻'), charge, root: anionRoot, name: anionRoot + (charge === -1 ? 'ide' : 'ate') };
+    const charge = chargeMap[rootDecoded] || -1;
+    const originalRoot = withoutH.replace(/[⁺⁻²³⁴⁵⁶⁷⁸⁹⁰]/g, '');
+    return {
+        symbol: originalRoot + (charge === -1 ? '⁻' : charge === -2 ? '²⁻' : '³⁻'),
+        charge,
+        root: originalRoot,
+        name: rootDecoded + (charge === -1 ? 'ide' : 'ate')
+    };
 }
 function getCationFromBase(base) {
     const formula = base.formula || base.symbol || '';
@@ -184,7 +365,6 @@ function getCationFromBase(base) {
 function buildIonicFormula(cation, anion) {
     const cCharge = Math.abs(cation.charge);
     const aCharge = Math.abs(anion.charge);
-    const gcd = (a, b) => b ? gcd(b, a % b) : a;
     const g = gcd(cCharge, aCharge);
     const cSub = aCharge / g;
     const aSub = cCharge / g;
@@ -192,7 +372,7 @@ function buildIonicFormula(cation, anion) {
     if (cSub > 1) cationPart += subscriptNumber(cSub);
     let anionPart = anion.root;
     if (aSub > 1) {
-        if (anion.root.length > 1 || /[A-Z][a-z]/.test(anion.root)) {
+        if (!/^[A-Z][a-z]?$/.test(anion.root)) {
             anionPart = '(' + anion.root + ')' + subscriptNumber(aSub);
         } else {
             anionPart += subscriptNumber(aSub);
@@ -214,65 +394,68 @@ function subscriptNumber(num) {
 function gcd(a, b) { return b ? gcd(b, a % b) : a; }
 
 // ============================================
-// STATE DETERMINATION (improved with isAqueous)
+// STATE DETERMINATION (JSON‑powered solubility)
 // ============================================
 function getProductState(product, temp, isAqueous = false) {
-    // If explicitly formed in aqueous solution, force (aq) unless it's a gas that overrides?
     if (isAqueous) {
-        // Check if compound is a known gas that would escape (like CO₂, SO₂, NH₃?) But for salts/ions, (aq)
         const formula = product.formula || product.symbol || '';
-        // If it's a water molecule, still use normal rules (water can be (l) even in aqueous context)
-        if (formula === 'H₂O') {
-            return temp < 0 ? 's' : temp >= 100 ? 'g' : 'l';
-        }
-        // For everything else, aqueous
+        if (formula === 'H₂O') return temp < 0 ? 's' : temp >= 100 ? 'g' : 'l';
         return 'aq';
     }
-    // Normal rules
     const formula = product.formula || product.symbol || '';
     const props = compoundsData.find(c => c.formula === formula);
-    if (props) {
+
+    // Only use melting/boiling if BOTH values exist and are not null
+    // (this excludes ionic solids that have null boiling points)
+    if (props && props.meltingPoint !== undefined && props.boilingPoint !== undefined && props.boilingPoint !== null) {
         if (temp < props.meltingPoint) return 's';
-        if (props.boilingPoint === null || temp < props.boilingPoint) return 'l';
+        if (temp < props.boilingPoint) return 'l';
         return 'g';
     }
-    if (product.meltingPoint !== undefined && product.boilingPoint !== undefined) {
+
+    if (product.meltingPoint !== undefined && product.boilingPoint !== undefined && product.boilingPoint !== null) {
         if (temp < product.meltingPoint) return 's';
         if (temp >= product.meltingPoint && temp < product.boilingPoint) return 'l';
         return 'g';
     }
     const cation = getCationFromFormula(formula);
     const anion = getAnionFromFormula(formula);
-    if (cation && anion) {
-        return checkSolubility(cation, anion) ? 'aq' : 's';
-    }
+    if (cation && anion) return checkSolubility(cation, anion, formula) ? 'aq' : 's';
     if (product.type === 'gas') return 'g';
     if (product.type === 'water') return temp < 0 ? 's' : temp >= 100 ? 'g' : 'l';
     return 's';
 }
 function getCationFromFormula(formula) {
-    const match = formula.match(/^([A-Z][a-z]?)/);
-    return match ? match[1] : null;
+    const m = formula.match(/^([A-Z][a-z]?)/);
+    return m ? m[1] : null;
 }
 function getAnionFromFormula(formula) {
-    const cationMatch = formula.match(/^[A-Z][a-z]?[₀₁₂₃₄₅₆₇₈₉]*/);
+    const decoded = decodeSubscript(formula);
+    const cationMatch = decoded.match(/^[A-Z][a-z]?\d*/);
     if (!cationMatch) return null;
-    const anionPart = formula.slice(cationMatch[0].length);
-    return anionPart.replace(/[₀₁₂₃₄₅₆₇₈₉()]/g, '');
+    const anionPart = decoded.slice(cationMatch[0].length);
+    return anionPart.replace(/[()\d]/g, '');
 }
-function checkSolubility(cation, anion) {
-    if (solubilityRules.alwaysSoluble.includes(cation) || solubilityRules.alwaysSoluble.includes(anion)) return true;
-    if (anion === 'Cl' || anion === 'Br' || anion === 'I') return !solubilityRules.halides.exceptions.includes(cation);
-    if (anion === 'SO₄' || anion === 'SO4') return !solubilityRules.sulfates.exceptions.includes(cation);
-    if (anion === 'CO₃' || anion === 'CO3') return false;
-    if (anion === 'OH') return solubilityRules.hydroxides.exceptions && solubilityRules.hydroxides.exceptions.includes(cation);
+function checkSolubility(cation, anion, formula = null) {
+    if (formula) {
+        const compound = compoundsData.find(c => c.formula === formula);
+        if (compound && compound.soluble !== undefined) {
+            return compound.soluble;
+        }
+    }
+    const decodedCation = decodeSubscript(cation).replace(/[⁺⁻²³⁴⁵⁶⁷⁸⁹⁰₀₁₂₃₄₅₆₇₈₉]/g, '');
+    const decodedAnion  = decodeSubscript(anion).replace(/[⁺⁻²³⁴⁵⁶⁷⁸⁹⁰₀₁₂₃₄₅₆₇₈₉]/g, '');
+    if (solubilityRules.alwaysSoluble.includes(decodedCation) || solubilityRules.alwaysSoluble.includes(decodedAnion)) return true;
+    if (decodedAnion === 'Cl' || decodedAnion === 'Br' || decodedAnion === 'I') return !solubilityRules.halides.exceptions.includes(decodedCation);
+    if (decodedAnion === 'SO4') return !solubilityRules.sulfates.exceptions.includes(decodedCation);
+    if (decodedAnion === 'CO3') return false;
+    if (decodedAnion === 'OH') return solubilityRules.hydroxides.exceptions && solubilityRules.hydroxides.exceptions.includes(decodedCation);
     return true;
 }
 function updateAllProductStates() {
     document.querySelectorAll('.product-card').forEach(card => {
         const product = JSON.parse(card.dataset.product || '{}');
-        const isAqueous = product.isAqueous === true;  // stored boolean
-        const state = getProductState(product, currentTemperature, isAqueous);
+        const state = getProductState(product, currentTemperature, product.isAqueous === true);
         const stateSpan = card.querySelector('.product-state');
         if (stateSpan) stateSpan.textContent = `(${state})`;
     });
@@ -322,26 +505,11 @@ function decodeSubscript(sub) {
 // FETCH & SETUP
 // ============================================
 fetch('data/elements.json')
-    .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.json();
-    })
-    .then(data => {
-        elementsData = data;
-        return fetch('data/ion.json');
-    })
-    .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.json();
-    })
-    .then(ionJson => {
-        ionData = ionJson;
-        return fetch('data/compounds.json');
-    })
-    .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.json();
-    })
+    .then(response => { if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`); return response.json(); })
+    .then(data => { elementsData = data; return fetch('data/ion.json'); })
+    .then(response => { if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`); return response.json(); })
+    .then(ionJson => { ionData = ionJson; return fetch('data/compounds.json'); })
+    .then(response => { if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`); return response.json(); })
     .then(compoundsJson => {
         compoundsData = compoundsJson;
         renderPeriodicTable(elementsData);
@@ -350,23 +518,18 @@ fetch('data/elements.json')
         window.addEventListener('hashchange', router);
         router();
         positionOverlayControls();
-        window.addEventListener('resize', () => {
-            positionOverlayControls();
-            updateCardSize();
-        });
+        window.addEventListener('resize', () => { positionOverlayControls(); updateCardSize(); });
     })
     .catch(error => {
         console.error('Error loading data:', error);
-        document.getElementById('periodic-table').innerHTML =
-            '<p style="color: red;">Failed to load data. Check console.</p>';
+        document.getElementById('periodic-table').innerHTML = '<p style="color: red;">Failed to load data. Check console.</p>';
     });
 
 // ============================================
 // HELPER: Determine state based on temperature (for elements)
 // ============================================
 function getState(element, temp) {
-    const mp = element.meltingPoint;
-    const bp = element.boilingPoint;
+    const mp = element.meltingPoint, bp = element.boilingPoint;
     if (mp === null || mp === undefined || bp === null || bp === undefined) {
         if (element.category === 'noble gas' || element.category === 'diatomic nonmetal') return 'g';
         if (element.symbol === 'Hg') return 'l';
@@ -593,7 +756,11 @@ function handleReaction(dragData, event, targetElementOrIon) {
     } else if (dragData.charge !== undefined) {
         ionA = { symbol: dragData.symbol, charge: dragData.charge, name: dragData.name, root: dragData.symbol.replace(/[⁺⁻²³⁴⁵⁶⁷⁸⁹⁰]/g, '') };
     } else if (dragData.symbol && dragData.formula) {
-        productA = { symbol: dragData.symbol, name: dragData.name, formula: dragData.formula, balanced: dragData.balanced || '', quantity: dragData.quantity || 1, category: dragData.category || classifyCompound({ name: dragData.name, formula: dragData.formula }) };
+        productA = {
+            symbol: dragData.symbol, name: dragData.name, formula: dragData.formula,
+            balanced: dragData.balanced || '', quantity: dragData.quantity || 1,
+            category: dragData.category || classifyCompound({ name: dragData.name, formula: dragData.formula })
+        };
     }
     let reactantB = null, ionB = null, productB = null;
     if (targetElementOrIon && targetElementOrIon.atomicNumber) {
@@ -608,51 +775,96 @@ function handleReaction(dragData, event, targetElementOrIon) {
     } else if (targetElementOrIon && targetElementOrIon.charge !== undefined) {
         ionB = { symbol: targetElementOrIon.symbol, charge: targetElementOrIon.charge, name: targetElementOrIon.name, root: targetElementOrIon.root };
     } else if (targetElementOrIon && targetElementOrIon.dataset && targetElementOrIon.dataset.formula) {
-        productB = { symbol: targetElementOrIon.dataset.symbol, name: targetElementOrIon.dataset.name, formula: targetElementOrIon.dataset.formula, balanced: targetElementOrIon.dataset.balanced || '', quantity: parseInt(targetElementOrIon.dataset.quantity) || 1, category: targetElementOrIon.dataset.category || classifyCompound({ name: targetElementOrIon.dataset.name, formula: targetElementOrIon.dataset.formula }) };
+        productB = {
+            symbol: targetElementOrIon.dataset.symbol, name: targetElementOrIon.dataset.name,
+            formula: targetElementOrIon.dataset.formula, balanced: targetElementOrIon.dataset.balanced || '',
+            quantity: parseInt(targetElementOrIon.dataset.quantity) || 1,
+            category: targetElementOrIon.dataset.category || classifyCompound({ name: targetElementOrIon.dataset.name, formula: targetElementOrIon.dataset.formula })
+        };
     }
+
+    const normalizeSymbol = (sym) => sym.replace(/[₂₃₄₅₆₇₈₉]/g, '');
     let result = null;
-    if (ionA && ionB) {
-        result = reactIons(ionA, ionB);
-    } else if ((reactantA || productA) && (reactantB || productB)) {
-        const symA = reactantA ? reactantA.symbol : productA.symbol;
-        const symB = reactantB ? reactantB.symbol : productB.symbol;
-        const key1 = symA + '+' + symB;
-        const key2 = symB + '+' + symA;
-        const reaction = reactionMap[key1] || reactionMap[key2];
-        if (reaction) {
-            result = { products: [ { ...reaction, quantity: 1 } ], type: reaction.type };
-        } else {
-            const catA = reactantA ? reactantA.category : productA.category;
-            const catB = reactantB ? reactantB.category : productB.category;
-            if (catA && catB) {
-                const pattern = reactionPatterns.find(p =>
-                    (p.reactantTypes[0] === catA && p.reactantTypes[1] === catB) ||
-                    (p.reactantTypes[0] === catB && p.reactantTypes[1] === catA)
-                );
-                if (pattern) {
-                    const reactantObjA = reactantA || { name: productA.name, formula: productA.formula, category: productA.category };
-                    const reactantObjB = reactantB || { name: productB.name, formula: productB.formula, category: productB.category };
-                    const products = pattern.generateProducts(reactantObjA, reactantObjB);
-                    if (products) {
-                        result = { products: products.map(p => ({ ...p, quantity: 1 })), type: pattern.description };
+
+    // Diatomic combination
+    if (reactantA && reactantB && reactantA.atomicNumber && reactantB.atomicNumber && reactantA.symbol === reactantB.symbol) {
+        const diatomicList = ['H', 'N', 'O', 'F', 'Cl', 'Br', 'I'];
+        if (diatomicList.includes(reactantA.symbol)) {
+            const diatomicSymbol = reactantA.symbol + '₂';
+            const compound = compoundsData.find(c => c.formula === diatomicSymbol);
+            result = {
+                products: [{ symbol: diatomicSymbol, name: compound?.name || reactantA.name + ' molecule', formula: diatomicSymbol, type: 'gas', balanced: `2${reactantA.symbol} → ${diatomicSymbol}`, isAqueous: false }],
+                type: 'direct combination'
+            };
+        }
+    }
+
+    // Self‑drop for single‑reactant patterns
+    if (!result && targetElementOrIon && targetElementOrIon.dataset && dragData.symbol === targetElementOrIon.dataset.symbol &&
+        dragData.formula === targetElementOrIon.dataset.formula) {
+        const singlePattern = reactionPatterns.find(p => p.singleReactant && p.reactantTypes[0] === (productA?.category || classifyCompound(productA)));
+        if (singlePattern && currentTemperature > 200) {
+            const products = singlePattern.generateProducts(productA);
+            if (products) {
+                result = {
+                    products: products.map(p => ({ ...p, quantity: 1 })),
+                    type: singlePattern.description,
+                    isDecomposition: true
+                };
+            }
+        }
+    }
+
+    if (!result) {
+        if (ionA && ionB) {
+            result = reactIons(ionA, ionB);
+        } else if ((reactantA || productA) && (reactantB || productB)) {
+            const symA = reactantA ? normalizeSymbol(reactantA.symbol) : normalizeSymbol(productA.symbol);
+            const symB = reactantB ? normalizeSymbol(reactantB.symbol) : normalizeSymbol(productB.symbol);
+            const key1 = symA + '+' + symB, key2 = symB + '+' + symA;
+            const reaction = reactionMap[key1] || reactionMap[key2];
+            if (reaction) {
+                result = { products: [{ ...reaction, quantity: 1 }], type: reaction.type };
+            } else {
+                const catA = getReactantCategory(reactantA || productA);
+                const catB = getReactantCategory(reactantB || productB);
+                if (catA && catB) {
+                    let pattern = reactionPatterns.find(p =>
+                        (p.reactantTypes[0] === catA && p.reactantTypes[1] === catB) ||
+                        (p.reactantTypes[0] === catB && p.reactantTypes[1] === catA)
+                    );
+                    if (!pattern && ((catA === 'metal' && catB === 'water') || (catB === 'metal' && catA === 'water'))) {
+                        pattern = reactionPatterns.find(p => p.reactantTypes[0] === 'metal' && p.reactantTypes[1] === 'water');
+                    }
+                    if (pattern) {
+                        const objA = reactantA || { name: productA.name, formula: productA.formula, category: productA.category, symbol: productA.symbol, oxidationStates: [] };
+                        const objB = reactantB || { name: productB.name, formula: productB.formula, category: productB.category, symbol: productB.symbol, oxidationStates: [] };
+                        if (catA === 'metal' && !objA.symbol && productA) { const c = getCationFromFormula(productA.formula); if (c) objA.symbol = c; }
+                        if (catB === 'metal' && !objB.symbol && productB) { const c = getCationFromFormula(productB.formula); if (c) objB.symbol = c; }
+                        const products = pattern.generateProducts(objA, objB);
+                        if (products) result = { products: products.map(p => ({ ...p, quantity: 1 })), type: pattern.description };
                     }
                 }
             }
         }
     }
+
     if (result) {
         const wrapper = document.querySelector('.table-relative-wrapper');
         const rect = wrapper.getBoundingClientRect();
-        const products = result.products;
-        products.forEach(prod => {
+        result.products.forEach(prod => {
             prod.reactionType = result.type;
             const x = event.clientX - rect.left - 40 + Math.random() * 20;
             const y = event.clientY - rect.top - 40 + Math.random() * 20;
             createProductCard(prod, x, y);
         });
-        const aStr = reactantA || ionA || productA;
-        const bStr = reactantB || ionB || productB;
-        logReaction(products[0], result.type, aStr, bStr);
+        if (result.isDecomposition) {
+            logReaction(result.products[0], result.type, productA, null);
+        } else {
+            const aStr = reactantA || ionA || productA;
+            const bStr = reactantB || ionB || productB;
+            logReaction(result.products[0], result.type, aStr, bStr);
+        }
     } else {
         const aStr = reactantA || ionA || productA;
         const bStr = reactantB || ionB || productB;
@@ -661,7 +873,7 @@ function handleReaction(dragData, event, targetElementOrIon) {
 }
 
 // ============================================
-// ION REACTION ENGINE
+// ION REACTION ENGINE (HOH fix)
 // ============================================
 function reactIons(ionA, ionB) {
     let cation, anion;
@@ -679,26 +891,26 @@ function reactIons(ionA, ionB) {
     if (cationSubscript > 1) formula += subscriptNumber(cationSubscript);
     let anionPart = anionRoot;
     if (anionSubscript > 1) {
-        if (anionRoot.length > 1 || /[A-Z][a-z]/.test(anionRoot)) anionPart = '(' + anionRoot + ')' + subscriptNumber(anionSubscript);
-        else anionPart += subscriptNumber(anionSubscript);
+        if (!/^[A-Z][a-z]?$/.test(anionRoot)) {
+            anionPart = '(' + anionRoot + ')' + subscriptNumber(anionSubscript);
+        } else {
+            anionPart += subscriptNumber(anionSubscript);
+        }
     }
     formula += anionPart;
     let name = cation.name + ' ' + anion.name.toLowerCase();
-    // Determine if product is aqueous (soluble ionic compound)
-    const isAqueous = checkSolubility(cationRoot, anionRoot);
+    if (formula === 'HOH') { formula = 'H₂O'; name = 'Water'; }
+    const isAqueous = checkSolubility(cationRoot, anionRoot, formula);
     let balanced = '';
     if (cationSubscript > 1) balanced += cationSubscript;
     balanced += cation.symbol + ' + ';
     if (anionSubscript > 1) balanced += anionSubscript;
     balanced += anion.symbol + ' → ' + formula;
-    return {
-        products: [ { symbol: formula, name, formula, type: 'ionic', balanced, isAqueous } ],
-        type: 'ionic'
-    };
+    return { products: [{ symbol: formula, name, formula, type: 'ionic', balanced, isAqueous }], type: 'ionic' };
 }
 
 // ============================================
-// NEUTRAL REACTION (used by old map)
+// NEUTRAL REACTION (old map)
 // ============================================
 function react(elementA, elementB, qtyA) {
     const key1 = elementA.symbol + '+' + elementB.symbol;
@@ -707,7 +919,7 @@ function react(elementA, elementB, qtyA) {
     if (reaction) {
         const qtyB = elementQuantities.get(elementB.atomicNumber) || 1;
         const minQty = Math.min(qtyA || 1, qtyB);
-        return { products: [ { ...reaction, quantity: minQty } ], type: reaction.type };
+        return { products: [{ ...reaction, quantity: minQty }], type: reaction.type };
     }
     return null;
 }
@@ -718,14 +930,8 @@ function react(elementA, elementB, qtyA) {
 function updateCardSize() {
     const hCard = document.querySelector('.element-card[data-symbol="H"]');
     if (hCard) cardSize = hCard.offsetWidth;
-    document.querySelectorAll('.product-card').forEach(card => {
-        card.style.width = cardSize + 'px';
-        card.style.height = cardSize + 'px';
-    });
-    document.querySelectorAll('.palette-card').forEach(card => {
-        card.style.width = cardSize + 'px';
-        card.style.height = cardSize + 'px';
-    });
+    document.querySelectorAll('.product-card').forEach(card => { card.style.width = cardSize + 'px'; card.style.height = cardSize + 'px'; });
+    document.querySelectorAll('.palette-card').forEach(card => { card.style.width = cardSize + 'px'; card.style.height = cardSize + 'px'; });
 }
 
 // ============================================
@@ -786,7 +992,7 @@ function buildIonPalette() {
 }
 
 // ============================================
-// CREATE PRODUCT CARD (with grip, info button)
+// CREATE PRODUCT CARD
 // ============================================
 function createProductCard(product, initialX, initialY) {
     const card = document.createElement('div');
@@ -802,7 +1008,7 @@ function createProductCard(product, initialX, initialY) {
     card.dataset.balanced = product.balanced || '';
     card.dataset.category = classifyCompound({ name: product.name, formula: product.formula });
     card.dataset.reactionType = product.reactionType || '';
-    card.dataset.product = JSON.stringify(product);  // store original product object with isAqueous
+    card.dataset.product = JSON.stringify(product);
     card.style.width = cardSize + 'px';
     card.style.height = cardSize + 'px';
     if (product.quantity > 1) {
@@ -811,7 +1017,6 @@ function createProductCard(product, initialX, initialY) {
         badge.textContent = product.quantity;
         card.appendChild(badge);
     }
-    // grip handle
     const grip = document.createElement('div');
     grip.className = 'grip-handle';
     grip.title = 'Drag to move';
@@ -842,7 +1047,6 @@ function createProductCard(product, initialX, initialY) {
     card.style.left = initialX + 'px';
     card.style.top = initialY + 'px';
     wrapper.appendChild(card);
-    // Info button (ⓘ) top-right
     const infoBtn = document.createElement('span');
     infoBtn.className = 'info-btn';
     infoBtn.textContent = 'ⓘ';
@@ -852,7 +1056,6 @@ function createProductCard(product, initialX, initialY) {
         showProductDetail(card);
     });
     card.appendChild(infoBtn);
-    // Quantity right-click
     card.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         let qty = parseInt(card.dataset.quantity) || 1;
@@ -866,16 +1069,11 @@ function createProductCard(product, initialX, initialY) {
         }
         badge.textContent = qty;
     });
-    // Draggable
     card.draggable = true;
     card.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('application/json', JSON.stringify({
-            symbol: product.symbol,
-            name: product.name,
-            formula: product.formula,
-            quantity: product.quantity || 1,
-            balanced: product.balanced || '',
-            category: card.dataset.category
+            symbol: product.symbol, name: product.name, formula: product.formula,
+            quantity: product.quantity || 1, balanced: product.balanced || '', category: card.dataset.category
         }));
         e.dataTransfer.effectAllowed = 'move';
     });
@@ -905,7 +1103,6 @@ function showProductDetail(card) {
     const isAqueous = product.isAqueous === true;
     const state = getProductState(product, currentTemperature, isAqueous);
     const reactionType = card.dataset.reactionType || '—';
-    // Description from compounds.json
     const compound = compoundsData.find(c => c.formula === formula);
     const description = compound?.description || 'No description available.';
     document.getElementById('product-popup-symbol').textContent = symbol;
@@ -929,7 +1126,12 @@ function logReaction(product, type, a, b) {
     conditions.push(`${currentPressure} kPa`);
     if (currentCatalyst !== 'none') conditions.push(`catalyst: ${currentCatalyst}`);
     const conditionStr = conditions.join(', ');
-    const balanced = product.balanced || `${a?.symbol || a?.root} + ${b?.symbol || b?.root} → ${product.symbol}`;
+    let balanced;
+    if (b === null) {
+        balanced = product.balanced || `${a.symbol || a.formula} → ${product.symbol}`;
+    } else {
+        balanced = product.balanced || `${a?.symbol || a?.root} + ${b?.symbol || b?.root} → ${product.symbol}`;
+    }
     logEntry.innerHTML = `<strong>${balanced}</strong><br><small>Type: ${type} | ${conditionStr}</small>`;
     document.getElementById('log-entries').appendChild(logEntry);
     reactionLogEntries.push(logEntry.textContent);
