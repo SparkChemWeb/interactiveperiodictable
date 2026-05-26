@@ -541,8 +541,8 @@
     "electronegativity": 1.83,
     "oxidationStates": [2, 3, 6],
     "commonIons": [
-      { "charge": 2, "symbol": "Fe²⁺" },
-      { "charge": 3, "symbol": "Fe³⁺" }
+      { "charge": 3, "symbol": "Fe³⁺" },
+      { "charge": 2, "symbol": "Fe²⁺" }
     ]
   },
   {
@@ -607,8 +607,8 @@
     "electronegativity": 1.90,
     "oxidationStates": [1, 2],
     "commonIons": [
-      { "charge": 1, "symbol": "Cu⁺" },
-      { "charge": 2, "symbol": "Cu²⁺" }
+      { "charge": 2, "symbol": "Cu²⁺" },
+      { "charge": 1, "symbol": "Cu⁺" }
     ]
   },
   {
