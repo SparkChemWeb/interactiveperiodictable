@@ -1,4 +1,4 @@
-console.log('🚀 SparkChemWeb script v5.1 – clear overlays fix');
+console.log('🚀 SparkChemWeb script v6.0 – touch drag + mobile + hover highlight');
 
 // ============================================
 // GLOBAL VARIABLES
@@ -551,6 +551,23 @@ function getProductClass(product) {
 }
 
 // ============================================
+// DRAG HOVER HIGHLIGHT HELPERS
+// ============================================
+function addDragHoverHandlers(el) {
+    el.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        el.classList.add('drag-hover');
+    });
+    el.addEventListener('dragleave', () => {
+        el.classList.remove('drag-hover');
+    });
+    el.addEventListener('drop', () => {
+        el.classList.remove('drag-hover');
+    });
+}
+
+// ============================================
 // FETCH & SETUP
 // ============================================
 fetch('data/elements.json')
@@ -742,6 +759,7 @@ function renderPeriodicTable(elements) {
         updateCardDisplay(card, element, quantity);
         // ========== DRAG & DROP ==========
         card.draggable = true;
+        addDragHoverHandlers(card);
         card.addEventListener('dragstart', (e) => {
             isDragging = true;
             const ionIdx = ionIndexMap.get(element.atomicNumber) || 0;
@@ -893,7 +911,6 @@ function handleReaction(dragData, event, targetElementOrIon) {
                         const products = pattern.generateProducts(objA, objB);
                         if (products) {
                             result = { products: products.map(p => ({ ...p, quantity: 1 })), type: pattern.description };
-                            // Tutorial hook for neutralisation (HCl + NaOH)
                             if (window.__tutorialCheckNeutralisation && pattern.description === 'Neutralisation') {
                                 const acidFormula = (reactantA || productA).formula || (reactantA || productA).symbol;
                                 const baseFormula = (reactantB || productB).formula || (reactantB || productB).symbol;
@@ -1023,6 +1040,7 @@ function buildIonPalette() {
         card.style.height = cardSize + 'px';
 
         card.draggable = true;
+        addDragHoverHandlers(card);
         card.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('application/json', JSON.stringify({
                 symbol: ion.symbol,
@@ -1140,6 +1158,7 @@ function createProductCard(product, initialX, initialY) {
         badge.textContent = qty;
     });
     card.draggable = true;
+    addDragHoverHandlers(card);
     card.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('application/json', JSON.stringify({
             symbol: product.symbol, name: product.name, formula: product.formula,
@@ -1184,7 +1203,6 @@ function showProductDetail(card) {
     document.getElementById('product-popup-description').textContent = description;
     popup.style.display = 'flex';
 
-    // Tutorial hook: if the tutorial expects the product info to be opened
     if (window.__tutorialCheckProductInfo) {
         window.__tutorialCheckProductInfo();
     }
@@ -1223,36 +1241,27 @@ function logNoReaction(a, b) {
 }
 
 // ============================================
-// POSITION OVERLAY CONTROLS
+// POSITION OVERLAY CONTROLS – unified wrapper
 // ============================================
 function positionOverlayControls() {
     const hCard = document.querySelector('.element-card[data-symbol="H"]');
     const heCard = document.querySelector('.element-card[data-symbol="He"]');
-    const tempOverlay = document.querySelector('.temp-overlay');
-    const pressureOverlay = document.querySelector('.pressure-overlay');
-    const catalystOverlay = document.querySelector('.catalyst-overlay');
-    if (!hCard || !heCard || !tempOverlay || !pressureOverlay || !catalystOverlay) return;
+    const overlay = document.getElementById('conditions-overlay');
+    if (!hCard || !heCard || !overlay) return;
+
     const container = document.querySelector('.table-relative-wrapper');
     if (!container) return;
     const containerRect = container.getBoundingClientRect();
     const hRect = hCard.getBoundingClientRect();
     const heRect = heCard.getBoundingClientRect();
-    const TEMP_W = 400, PRESSURE_W = 400, CATALYST_W = 300, GAP = 10;
-    const tempLeft = hRect.right - containerRect.left + GAP;
-    tempOverlay.style.left = tempLeft + 'px';
-    tempOverlay.style.right = 'auto';
-    tempOverlay.style.top = (hRect.top - containerRect.top) + 'px';
-    const catalystRightFromLeft = heRect.left - containerRect.left - GAP;
-    const catalystLeft = catalystRightFromLeft - CATALYST_W;
-    catalystOverlay.style.left = (catalystLeft > tempLeft ? catalystLeft : tempLeft + TEMP_W + GAP) + 'px';
-    catalystOverlay.style.right = 'auto';
-    catalystOverlay.style.top = (heRect.top - containerRect.top) + 'px';
-    const tempRight = tempLeft + TEMP_W;
-    const availableMiddle = catalystLeft - tempRight;
-    let pressureLeft = availableMiddle >= PRESSURE_W ? tempRight + (availableMiddle - PRESSURE_W) / 2 : tempRight + GAP;
-    pressureOverlay.style.left = pressureLeft + 'px';
-    pressureOverlay.style.right = 'auto';
-    pressureOverlay.style.top = (hRect.top - containerRect.top) + 'px';
+
+    const GAP = 10;
+    const left = hRect.right - containerRect.left + GAP;
+    const right = heRect.left - containerRect.left - GAP;
+
+    overlay.style.left = left + 'px';
+    overlay.style.right = (containerRect.width - right) + 'px';
+    overlay.style.top = (hRect.top - containerRect.top) + 'px';
 }
 
 // ============================================
@@ -1434,7 +1443,6 @@ if (clearBtn) {
         document.querySelectorAll('#toggle-log, #toggle-ions').forEach(btn => btn.classList.remove('active'));
     });
 }
-
 const catalystSelect = document.getElementById('catalyst-select');
 if (catalystSelect) catalystSelect.addEventListener('change', (e) => { currentCatalyst = e.target.value; });
 const backBtn = document.getElementById('back-to-table');
@@ -1475,7 +1483,6 @@ document.querySelectorAll('.overlay-close').forEach(btn => {
 
 // Close pop‑ups (with tutorial hooks)
 document.addEventListener('click', (e) => {
-    // Product popup close button
     if (e.target.id === 'product-popup-close') {
         const popup = document.getElementById('product-popup');
         if (popup) {
@@ -1485,7 +1492,6 @@ document.addEventListener('click', (e) => {
             }
         }
     }
-    // Click outside product popup to close
     if (e.target.classList.contains('product-popup')) {
         const popup = document.getElementById('product-popup');
         if (popup) {
@@ -1495,7 +1501,6 @@ document.addEventListener('click', (e) => {
             }
         }
     }
-    // Ion popup close button
     if (e.target.id === 'ion-popup-close') {
         const popup = document.getElementById('ion-popup');
         if (popup) popup.style.display = 'none';
@@ -1503,7 +1508,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ============================================
-// INTERACTIVE TUTORIAL  (v5.1)
+// INTERACTIVE TUTORIAL  (v5.2)
 // ============================================
 const tutorialOverlay = document.getElementById('tutorial-overlay');
 const tutorialTitle = document.getElementById('tutorial-title');
@@ -1561,7 +1566,7 @@ const tutorialSteps = [
     {   // step 6
         title: 'Step 7: Control the conditions',
         description: 'Use the <b>Temperature</b> and <b>Pressure</b> sliders and the <b>Catalyst</b> dropdown to change reaction conditions. (Click Next to continue.)',
-        highlightSelector: '.temp-overlay, .pressure-overlay, .catalyst-overlay',
+        highlightSelector: '#conditions-overlay',
         autoAdvance: false
     },
     {   // step 7
@@ -1791,17 +1796,140 @@ if (!localStorage.getItem('sparkchemweb-tutorial-seen')) {
 const originalCreateProductCard = createProductCard;
 createProductCard = function(product, initialX, initialY) {
     const card = originalCreateProductCard(product, initialX, initialY);
-    // Water detection
     if (window.__tutorialCheckWater && product.symbol === 'H₂O') {
         window.__tutorialCheckWater(product.symbol);
     }
-    // HCl detection
     if (window.__tutorialCheckHCl && (product.symbol === 'HCl' || product.formula === 'HCl')) {
         window.__tutorialCheckHCl(product.symbol);
     }
-    // NaOH detection
     if (window.__tutorialCheckNaOH && (product.symbol === 'NaOH' || product.formula === 'NaOH')) {
         window.__tutorialCheckNaOH(product.symbol);
     }
     return card;
 };
+
+// ============================================
+// TOUCH DRAG‑AND‑DROP SUPPORT
+// ============================================
+let touchDragData = null;
+let touchGhost = null;
+let touchStartX = 0, touchStartY = 0;
+
+function enableTouchDrag() {
+    document.addEventListener('touchstart', onTouchStart, { passive: false });
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onTouchEnd);
+    document.addEventListener('touchcancel', onTouchEnd);
+}
+
+function onTouchStart(e) {
+    const touch = e.changedTouches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    const draggable = target?.closest('[draggable="true"]');
+    if (!draggable) return;
+
+    if (draggable.classList.contains('element-card')) {
+        const atomicNumber = parseInt(draggable.dataset.atomicNumber);
+        const element = elementsData.find(el => el.atomicNumber === atomicNumber);
+        if (!element) return;
+        const ionIdx = ionIndexMap.get(atomicNumber) || 0;
+        const qty = elementQuantities.get(atomicNumber) || 1;
+        touchDragData = { atomicNumber, ionIndex: ionIdx, quantity: qty };
+    } else if (draggable.classList.contains('palette-card')) {
+        touchDragData = {
+            symbol: draggable.dataset.symbol,
+            charge: parseInt(draggable.dataset.charge),
+            name: draggable.dataset.name,
+            quantity: paletteQuantities.get(draggable.dataset.symbol) || 1
+        };
+    } else if (draggable.classList.contains('product-card')) {
+        touchDragData = {
+            symbol: draggable.dataset.symbol,
+            name: draggable.dataset.name,
+            formula: draggable.dataset.formula,
+            quantity: parseInt(draggable.dataset.quantity) || 1,
+            balanced: draggable.dataset.balanced || '',
+            category: draggable.dataset.category || classifyCompound({ name: draggable.dataset.name, formula: draggable.dataset.formula })
+        };
+    } else {
+        return;
+    }
+
+    touchGhost = draggable.cloneNode(true);
+    touchGhost.style.position = 'fixed';
+    touchGhost.style.zIndex = '9999';
+    touchGhost.style.pointerEvents = 'none';
+    touchGhost.style.opacity = '0.8';
+    touchGhost.style.width = draggable.offsetWidth + 'px';
+    touchGhost.style.height = draggable.offsetHeight + 'px';
+    document.body.appendChild(touchGhost);
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    moveGhost(touch.clientX, touch.clientY);
+    e.preventDefault();
+}
+
+function onTouchMove(e) {
+    if (!touchDragData) return;
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    moveGhost(touch.clientX, touch.clientY);
+
+    document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
+    const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (elemBelow && elemBelow.closest('[draggable="true"]') && elemBelow.closest('[draggable="true"]') !== touchGhost) {
+        const target = elemBelow.closest('[draggable="true"]');
+        target.classList.add('drag-hover');
+    }
+}
+
+function onTouchEnd(e) {
+    if (!touchDragData) return;
+    const touch = e.changedTouches[0];
+    const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const target = elemBelow?.closest('[draggable="true"]');
+
+    if (touchGhost) {
+        touchGhost.remove();
+        touchGhost = null;
+    }
+    document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
+
+    if (target) {
+        if (target.classList.contains('element-card')) {
+            const atomicNumber = parseInt(target.dataset.atomicNumber);
+            const element = elementsData.find(el => el.atomicNumber === atomicNumber);
+            if (element) {
+                handleReaction(touchDragData, { clientX: touch.clientX, clientY: touch.clientY }, element);
+            }
+        } else if (target.classList.contains('palette-card')) {
+            const ion = {
+                symbol: target.dataset.symbol,
+                charge: parseInt(target.dataset.charge),
+                name: target.dataset.name,
+                root: target.dataset.root
+            };
+            handleReaction(touchDragData, { clientX: touch.clientX, clientY: touch.clientY }, ion);
+        } else if (target.classList.contains('product-card')) {
+            handleReaction(touchDragData, { clientX: touch.clientX, clientY: touch.clientY }, target);
+        }
+    }
+
+    touchDragData = null;
+}
+
+function moveGhost(x, y) {
+    if (!touchGhost) return;
+    touchGhost.style.left = (x - touchGhost.offsetWidth / 2) + 'px';
+    touchGhost.style.top = (y - touchGhost.offsetHeight / 2) + 'px';
+}
+
+// Enable touch support on touch-capable devices
+if ('ontouchstart' in window) {
+    window.addEventListener('DOMContentLoaded', enableTouchDrag);
+}
+
+// Cleanup any lingering drag-hover highlights on mouse drag end
+document.addEventListener('dragend', () => {
+    document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
+});
