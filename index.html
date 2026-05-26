@@ -12,6 +12,7 @@
         <div class="header-left">
             <button id="mode-atom" class="mode-btn active">Atom</button>
             <button id="mode-ion" class="mode-btn">Ion</button>
+            <button id="help-btn" class="help-btn" title="Tutorial">?</button>
         </div>
         <h1>🧪 Periodic Table 🧪</h1>
         <div class="header-right">
@@ -190,6 +191,18 @@
                 <tr><td><strong>Reaction Type:</strong></td><td id="product-popup-type"></td></tr>
                 <tr><td><strong>Description:</strong></td><td id="product-popup-description"></td></tr>
             </table>
+        </div>
+    </div>
+
+    <!-- TUTORIAL OVERLAY -->
+    <div id="tutorial-overlay" class="tutorial-overlay" style="display: none;">
+        <div class="tutorial-content">
+            <h2 id="tutorial-title">Welcome to SparkChemWeb!</h2>
+            <p id="tutorial-description"></p>
+            <div class="tutorial-buttons">
+                <button id="tutorial-skip" class="mode-btn">Skip tutorial</button>
+                <button id="tutorial-next" class="clear-btn">Next</button>
+            </div>
         </div>
     </div>
 
