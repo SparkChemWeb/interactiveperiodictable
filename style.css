@@ -23,27 +23,32 @@ body {
 /* ============================================
    HEADER WITH LEFT & RIGHT CONTROLS
    ============================================ */
+/* ============================================
+   HEADER – Grid layout to centre title
+   ============================================ */
 .header-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
     margin-bottom: 10px;
 }
 
 .header-left {
     display: flex;
     gap: 10px;
+    justify-self: start;
 }
 
 .header-right {
     display: flex;
+    gap: 10px;
+    justify-self: end;
 }
 
 h1 {
     text-align: center;
     margin: 0;
     color: #2c3e50;
-    flex: 1;
 }
 
 /* Mode buttons (Atom / Ion) */
@@ -108,12 +113,10 @@ h1 {
     white-space: nowrap;
 }
 
-/* Fixed widths so positioning is reliable */
 .temp-overlay      { width: 400px; }
 .pressure-overlay  { width: 400px; }
 .catalyst-overlay  { width: 300px; }
 
-/* Sliders – visible track and thumb */
 #temp-slider,
 #pressure-slider {
     width: 300px;
@@ -127,7 +130,6 @@ h1 {
     cursor: pointer;
 }
 
-/* Slider track */
 #temp-slider::-webkit-slider-runnable-track,
 #pressure-slider::-webkit-slider-runnable-track {
     width: 100%;
@@ -136,7 +138,6 @@ h1 {
     border-radius: 2px;
 }
 
-/* Slider thumb */
 #temp-slider::-webkit-slider-thumb,
 #pressure-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -148,7 +149,6 @@ h1 {
     cursor: pointer;
 }
 
-/* Firefox track & thumb */
 #temp-slider::-moz-range-track,
 #pressure-slider::-moz-range-track {
     width: 100%;
@@ -167,7 +167,6 @@ h1 {
     cursor: pointer;
 }
 
-/* Catalyst dropdown */
 .catalyst-overlay select {
     width: 200px;
     padding: 4px 6px;
@@ -280,7 +279,6 @@ h1 {
     position: relative;
 }
 
-/* Placeholder cell – forced grey dashed box */
 .element-card.placeholder {
     background-color: #e0e0e0 !important;
     border: 1px dashed #999 !important;
@@ -313,7 +311,6 @@ h1 {
     z-index: 10;
 }
 
-/* Info button (ⓘ) for Ion Mode */
 .info-btn {
     position: absolute;
     top: 2px;
@@ -335,7 +332,6 @@ body.ion-mode .info-btn {
     display: flex;
 }
 
-/* Quantity badge (always visible on palette, element, and product cards) */
 .quantity-badge {
     position: absolute;
     bottom: 2px;
@@ -354,14 +350,12 @@ body.ion-mode .info-btn {
     justify-content: center;
 }
 
-/* State symbol */
 .state-symbol {
     font-size: 0.5rem;
     margin-left: 1px;
     margin-top: 8px;
 }
 
-/* Card inner text styles */
 .atomic-number {
     align-self: flex-start;
     font-size: 0.75rem;
@@ -391,7 +385,7 @@ body.ion-mode .info-btn {
    ============================================ */
 .product-card {
     position: absolute;
-    z-index: 50;
+    z-index: 200;                       /* always above overlays */
     background-color: #e6ffe6;
     border: 2px solid #4caf50;
     border-radius: 6px;
@@ -435,13 +429,60 @@ body.ion-mode .info-btn {
     cursor: grab;
     z-index: 5;
 }
+
 .product-card .grip-handle:active {
     cursor: grabbing;
 }
 
-.product-state {
-    font-size: 0.5rem;
-    margin-left: 2px;
+.product-card .info-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    background: rgba(255,255,255,0.8);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    z-index: 6;
+}
+
+/* ============================================
+   PRODUCT CARD COLOURS
+   ============================================ */
+.product-card {
+    /* default – will be overridden by classes below */
+    background-color: #e6ffe6;
+    border: 2px solid #4caf50;
+}
+
+.product-card.prod-water {
+    background-color: #b3d9ff;
+    border-color: #3399ff;
+}
+
+.product-card.prod-ionic {
+    background-color: #e6ffe6;
+    border-color: #4caf50;
+}
+
+.product-card.prod-gas {
+    background-color: #fff9b3;
+    border-color: #ffcc00;
+}
+
+.product-card.prod-molecular {
+    background-color: #e6ccff;
+    border-color: #9933ff;
+}
+
+.product-card.prod-oxide {
+    background-color: #ffccb3;
+    border-color: #ff6600;
 }
 
 /* ============================================
@@ -454,27 +495,20 @@ body.ion-mode .info-btn {
     padding: 10px var(--card-padding);
 }
 
+/* Palette grid – now a flex row, no title */
 .palette-grid {
-    display: grid;
-    grid-template-columns: repeat(18, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: var(--card-gap);
     align-items: center;
+    justify-content: flex-start;   /* left‑aligned */
     min-height: 50px;
+    padding: 5px 0;                /* optional tiny padding */
 }
 
-/* Title card – matches reaction log header */
+/* Remove any leftover title styles */
 .palette-title {
-    grid-column: 1 / span 4;
-    font-weight: 600;
-    font-size: 1.1rem;
-    color: #2c3e50;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    user-select: none;
-    margin: 0;
+    display: none;
 }
 
 /* ============================================
@@ -810,40 +844,63 @@ body.ion-mode .info-btn {
     font-weight: 500;
 }
 
-.product-card .info-btn {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    font-size: 0.7rem;
-    cursor: pointer;
-    background: rgba(255,255,255,0.8);
-    border-radius: 50%;
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    z-index: 6;
-}
-
 /* ============================================
-   REACTION LOG
+   OVERLAY PANELS (Log, Ions)
    ============================================ */
-#reaction-log {
-    margin-top: 20px;
-    padding: 20px;
+.overlay-panel {
+    position: fixed;
+    z-index: 100;
     background: white;
     border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    max-height: 250px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    padding: 20px;
+    min-width: 350px;
+    max-width: 500px;
+    max-height: 70vh;
     overflow-y: auto;
+    transition: opacity 0.2s ease;
 }
 
-#reaction-log h3 {
+/* Log panel – bottom‑right */
+#log-overlay {
+    bottom: 20px;
+    right: 20px;
+}
+
+/* Ions panel – bottom‑left */
+#ions-overlay {
+    bottom: 20px;
+    left: 20px;
+}
+
+.overlay-panel h3 {
     margin-top: 0;
-    margin-bottom: 15px;
-    color: #2c3e50;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.overlay-close {
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #555;
+    padding: 0 8px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.overlay-close:hover {
+    background: #eee;
+    color: #000;
+}
+
+/* Keep the reaction log scrollable inside the overlay */
+#reaction-log {
+    max-height: 60vh;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
 }
 
 #log-entries {
@@ -859,6 +916,26 @@ body.ion-mode .info-btn {
     font-size: 0.9rem;
     color: #333;
     border-left: 4px solid #007aff;
+}
+
+/* Ion palette inside overlay – remove its background, keep alignment */
+#ions-overlay #ion-palette {
+    background: transparent;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+}
+
+#ions-overlay .palette-grid-wrapper,
+#ions-overlay .palette-grid {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+/* ---------- Hide the duplicated title in ions overlay ---------- */
+#ions-overlay .palette-title {
+    display: none;
 }
 
 /* ============================================
@@ -901,5 +978,17 @@ body.ion-mode .info-btn {
         width: 60px !important;
         height: 60px !important;
         font-size: 0.7rem;
+    }
+
+    .overlay-panel {
+        bottom: 10px;
+        min-width: 280px;
+        max-width: 90vw;
+    }
+    #log-overlay {
+        right: 10px;
+    }
+    #ions-overlay {
+        left: 10px;
     }
 }
