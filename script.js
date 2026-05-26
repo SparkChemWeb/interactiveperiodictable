@@ -1,4 +1,4 @@
-console.log('🚀 SparkChemWeb script v3.7 fixed');
+console.log('🚀 SparkChemWeb script v5.1 – clear overlays fix');
 
 // ============================================
 // GLOBAL VARIABLES
@@ -68,25 +68,18 @@ function classifyCompound(compound) {
     if (!compound) return null;
     const name = (compound.name || '').toLowerCase();
     const formulaLower = (compound.formula || compound.symbol || '').toLowerCase();
-    // WATER MUST BE FIRST
     if (name === 'water' || formulaLower === 'h2o' || formulaLower === 'h₂o') return 'water';
-    // Diatomic nonmetal gases (including halogens)
     if (/^(h₂|n₂|o₂|f₂|cl₂|br₂|i₂)$/.test(formulaLower) || name.includes('molecule')) {
         const elemSymbol = formulaLower.charAt(0).toUpperCase();
         if (['F','Cl','Br','I'].includes(elemSymbol)) return 'halogen';
         if (['H','N','O'].includes(elemSymbol)) return 'gas';
         return 'gas';
     }
-    // Acid
     if (/^h[^2o]/.test(formulaLower) || name.includes('acid')) return 'acid';
-    // Base
     if (name.endsWith('hydroxide') || /oh/i.test(formulaLower)) return 'base';
-    // Carbonate
     if (name.includes('carbonate') || /co3/i.test(formulaLower)) return 'carbonate';
-    // Oxide (simple pattern) – use original case for regex
     const rawFormula = compound.formula || compound.symbol || '';
     if (name.endsWith('oxide') || /^[A-Z][a-z]?[₀₁₂₃₄₅₆₇₈₉]*O[₀₁₂₃₄₅₆₇₈₉]*$/.test(rawFormula)) return 'oxide';
-    // Everything else → salt
     return 'salt';
 }
 
@@ -325,20 +318,14 @@ const reactionPatterns = [
             const cationB = getCationFromFormula(saltB.formula);
             const anionB = getAnionFromFormula(saltB.formula);
             if (!cationA || !anionA || !cationB || !anionB) return null;
-            if ((cationA === cationB && anionA === anionB) ||
-                (cationA === cationB && anionB === anionA)) {
-                return null;
-            }
+            if ((cationA === cationB && anionA === anionB) || (cationA === cationB && anionB === anionA)) return null;
             const anionBObj = getAnionFromAcid({ formula: 'H' + anionB });
             const anionAObj = getAnionFromAcid({ formula: 'H' + anionA });
             const product1Formula = buildIonicFormula({ root: cationA, charge: 1, name: cationA }, anionBObj);
             const product2Formula = buildIonicFormula({ root: cationB, charge: 1, name: cationB }, anionAObj);
             const orig1 = saltA.formula;
             const orig2 = saltB.formula;
-            if ((product1Formula === orig1 && product2Formula === orig2) ||
-                (product1Formula === orig2 && product2Formula === orig1)) {
-                return null;
-            }
+            if ((product1Formula === orig1 && product2Formula === orig2) || (product1Formula === orig2 && product2Formula === orig1)) return null;
             const sol1 = checkSolubility(cationA, anionB, product1Formula);
             const sol2 = checkSolubility(cationB, anionA, product2Formula);
             const balanced = `${saltA.formula || saltA.symbol} + ${saltB.formula || saltB.symbol} → ${product1Formula} + ${product2Formula}`;
@@ -488,9 +475,7 @@ function getAnionFromFormula(formula) {
 function checkSolubility(cation, anion, formula = null) {
     if (formula) {
         const compound = compoundsData.find(c => c.formula === formula);
-        if (compound && compound.soluble !== undefined) {
-            return compound.soluble;
-        }
+        if (compound && compound.soluble !== undefined) return compound.soluble;
     }
     const decodedCation = decodeSubscript(cation).replace(/[⁺⁻²³⁴⁵⁶⁷⁸⁹⁰₀₁₂₃₄₅₆₇₈₉]/g, '');
     const decodedAnion  = decodeSubscript(anion).replace(/[⁺⁻²³⁴⁵⁶⁷⁸⁹⁰₀₁₂₃₄₅₆₇₈₉]/g, '');
@@ -906,7 +891,17 @@ function handleReaction(dragData, event, targetElementOrIon) {
                         if (catA === 'metal' && !objA.symbol && productA) { const c = getCationFromFormula(productA.formula); if (c) objA.symbol = c; }
                         if (catB === 'metal' && !objB.symbol && productB) { const c = getCationFromFormula(productB.formula); if (c) objB.symbol = c; }
                         const products = pattern.generateProducts(objA, objB);
-                        if (products) result = { products: products.map(p => ({ ...p, quantity: 1 })), type: pattern.description };
+                        if (products) {
+                            result = { products: products.map(p => ({ ...p, quantity: 1 })), type: pattern.description };
+                            // Tutorial hook for neutralisation (HCl + NaOH)
+                            if (window.__tutorialCheckNeutralisation && pattern.description === 'Neutralisation') {
+                                const acidFormula = (reactantA || productA).formula || (reactantA || productA).symbol;
+                                const baseFormula = (reactantB || productB).formula || (reactantB || productB).symbol;
+                                if ((acidFormula === 'HCl' && baseFormula === 'NaOH') || (acidFormula === 'NaOH' && baseFormula === 'HCl')) {
+                                    window.__tutorialCheckNeutralisation();
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -971,13 +966,11 @@ function reactIons(ionA, ionB) {
         }
     }
     formula += anionPart;
-    // Build proper compound name
     let anionName = anion.name;
-    // If anion is a monatomic element ion, use -ide name
     if (anion.root && anion.root.length <= 2 && /^[A-Z][a-z]?$/.test(anionRoot)) {
         anionName = getAnionNameFromElement(anionRoot);
     } else if (anionName === anionRoot) {
-        anionName = anionRoot; // already a proper polyatomic name
+        anionName = anionRoot;
     }
     let name = cation.name + ' ' + anionName.toLowerCase();
     if (formula === 'HOH') { formula = 'H₂O'; name = 'Water'; }
@@ -988,21 +981,6 @@ function reactIons(ionA, ionB) {
     if (anionSubscript > 1) balanced += anionSubscript;
     balanced += anion.symbol + ' → ' + formula;
     return { products: [{ symbol: formula, name, formula, type: 'ionic', balanced, isAqueous }], type: 'ionic' };
-}
-
-// ============================================
-// NEUTRAL REACTION (old map)
-// ============================================
-function react(elementA, elementB, qtyA) {
-    const key1 = elementA.symbol + '+' + elementB.symbol;
-    const key2 = elementB.symbol + '+' + elementA.symbol;
-    const reaction = reactionMap[key1] || reactionMap[key2];
-    if (reaction) {
-        const qtyB = elementQuantities.get(elementB.atomicNumber) || 1;
-        const minQty = Math.min(qtyA || 1, qtyB);
-        return { products: [{ ...reaction, quantity: minQty }], type: reaction.type };
-    }
-    return null;
 }
 
 // ============================================
@@ -1182,7 +1160,7 @@ function createProductCard(product, initialX, initialY) {
 }
 
 // ============================================
-// SHOW PRODUCT DETAIL POP‑UP
+// SHOW PRODUCT DETAIL POP‑UP  (with tutorial hook)
 // ============================================
 function showProductDetail(card) {
     const popup = document.getElementById('product-popup');
@@ -1205,6 +1183,11 @@ function showProductDetail(card) {
     document.getElementById('product-popup-type').textContent = reactionType;
     document.getElementById('product-popup-description').textContent = description;
     popup.style.display = 'flex';
+
+    // Tutorial hook: if the tutorial expects the product info to be opened
+    if (window.__tutorialCheckProductInfo) {
+        window.__tutorialCheckProductInfo();
+    }
 }
 
 // ============================================
@@ -1413,6 +1396,7 @@ if (atomBtn && ionBtn) {
         updateAllStateSymbols();
     });
 }
+
 const clearBtn = document.getElementById('clear-all');
 if (clearBtn) {
     clearBtn.addEventListener('click', () => {
@@ -1425,21 +1409,32 @@ if (clearBtn) {
         currentCatalyst = 'none';
         const catalystSelect = document.getElementById('catalyst-select');
         if (catalystSelect) catalystSelect.value = 'none';
+
         elementQuantities.clear();
         ionIndexMap.clear();
         paletteQuantities.clear();
+
         const wrapper = document.querySelector('.table-relative-wrapper');
         if (wrapper) wrapper.querySelectorAll('.product-card').forEach(c => c.remove());
+
         reactionLogEntries = [];
         const logContainer = document.getElementById('log-entries');
         if (logContainer) logContainer.innerHTML = '';
+
         renderPeriodicTable(elementsData);
         buildIonPalette();
         updateCardSize();
         positionOverlayControls();
+
+        // Hide overlays and reset their toggle buttons
+        const logOverlay = document.getElementById('log-overlay');
+        const ionsOverlay = document.getElementById('ions-overlay');
+        if (logOverlay) logOverlay.style.display = 'none';
+        if (ionsOverlay) ionsOverlay.style.display = 'none';
         document.querySelectorAll('#toggle-log, #toggle-ions').forEach(btn => btn.classList.remove('active'));
     });
 }
+
 const catalystSelect = document.getElementById('catalyst-select');
 if (catalystSelect) catalystSelect.addEventListener('change', (e) => { currentCatalyst = e.target.value; });
 const backBtn = document.getElementById('back-to-table');
@@ -1478,14 +1473,335 @@ document.querySelectorAll('.overlay-close').forEach(btn => {
     });
 });
 
-// Close pop‑ups
+// Close pop‑ups (with tutorial hooks)
 document.addEventListener('click', (e) => {
+    // Product popup close button
+    if (e.target.id === 'product-popup-close') {
+        const popup = document.getElementById('product-popup');
+        if (popup) {
+            popup.style.display = 'none';
+            if (window.__tutorialCheckProductInfoClosed) {
+                window.__tutorialCheckProductInfoClosed();
+            }
+        }
+    }
+    // Click outside product popup to close
+    if (e.target.classList.contains('product-popup')) {
+        const popup = document.getElementById('product-popup');
+        if (popup) {
+            popup.style.display = 'none';
+            if (window.__tutorialCheckProductInfoClosed) {
+                window.__tutorialCheckProductInfoClosed();
+            }
+        }
+    }
+    // Ion popup close button
     if (e.target.id === 'ion-popup-close') {
         const popup = document.getElementById('ion-popup');
         if (popup) popup.style.display = 'none';
     }
-    if (e.target.id === 'product-popup-close') {
-        const popup = document.getElementById('product-popup');
-        if (popup) popup.style.display = 'none';
-    }
 });
+
+// ============================================
+// INTERACTIVE TUTORIAL  (v5.1)
+// ============================================
+const tutorialOverlay = document.getElementById('tutorial-overlay');
+const tutorialTitle = document.getElementById('tutorial-title');
+const tutorialDesc = document.getElementById('tutorial-description');
+const tutorialNextBtn = document.getElementById('tutorial-next');
+const tutorialSkipBtn = document.getElementById('tutorial-skip');
+const helpBtn = document.getElementById('help-btn');
+
+let tutorialActive = false;
+let currentTutorialStep = 0;
+let tutorialListeners = [];
+
+const tutorialSteps = [
+    {   // step 0
+        title: 'Step 1: View an element’s details',
+        description: 'Click on the element <b>Hydrogen (H)</b> to see its properties.',
+        highlightSelector: '.element-card[data-symbol="H"]',
+        autoAdvance: true,
+        advanceOn: 'hash-element-1'
+    },
+    {   // step 1
+        title: 'Step 2: Go back to the table',
+        description: 'Click the <b>← Back to Table</b> button to return to the main view.',
+        highlightSelector: '#back-to-table',
+        autoAdvance: true,
+        advanceOn: 'back-to-table'
+    },
+    {   // step 2
+        title: 'Step 3: Make water!',
+        description: 'Drag <b>Hydrogen (H)</b> onto <b>Oxygen (O)</b> to form water (H₂O).',
+        highlightSelector: '.element-card[data-symbol="H"], .element-card[data-symbol="O"]',
+        autoAdvance: true,
+        advanceOn: 'water-created'
+    },
+    {   // step 3
+        title: 'Step 4: Move the product card',
+        description: 'Grab the small handle (top‑left corner of the H₂O card) and drag it to reposition the molecule. (Click Next when you’ve tried it.)',
+        highlightSelector: '.product-card[data-symbol="H₂O"] .grip-handle',
+        autoAdvance: false
+    },
+    {   // step 4
+        title: 'Step 5: Product info',
+        description: 'Click the <b>ⓘ</b> button on the H₂O card to see detailed information about water.',
+        highlightSelector: '.product-card[data-symbol="H₂O"] .info-btn',
+        autoAdvance: true,
+        advanceOn: 'product-info-opened'
+    },
+    {   // step 5 – close info popup
+        title: 'Step 6: Close the info popup',
+        description: 'Click the <b>✕</b> button (or outside the popup) to close the product info.',
+        highlightSelector: '#product-popup-close',
+        autoAdvance: true,
+        advanceOn: 'product-info-closed'
+    },
+    {   // step 6
+        title: 'Step 7: Control the conditions',
+        description: 'Use the <b>Temperature</b> and <b>Pressure</b> sliders and the <b>Catalyst</b> dropdown to change reaction conditions. (Click Next to continue.)',
+        highlightSelector: '.temp-overlay, .pressure-overlay, .catalyst-overlay',
+        autoAdvance: false
+    },
+    {   // step 7
+        title: 'Step 8: Switch to ion mode',
+        description: 'Click the <b>Ion</b> button (top left) to work with charged ions.',
+        highlightSelector: '#mode-ion',
+        autoAdvance: true,
+        advanceOn: 'ion-mode'
+    },
+    {   // step 8 – form HCl from H⁺ + Cl⁻
+        title: 'Step 9: Form HCl',
+        description: 'Click <b>H</b> to cycle to H⁺, click <b>Cl</b> to Cl⁻, then drag one onto the other to form HCl.',
+        highlightSelector: '.element-card[data-symbol="H"], .element-card[data-symbol="Cl"]',
+        autoAdvance: true,
+        advanceOn: 'HCl-created'
+    },
+    {   // step 9 – open Common Ions palette
+        title: 'Step 10: Open the Common Ions palette',
+        description: 'Click the <b>⚛️ Ions</b> button to open the polyatomic ion palette. (Click Next when ready.)',
+        highlightSelector: '#toggle-ions',
+        autoAdvance: false
+    },
+    {   // step 10 – form NaOH from Na⁺ + OH⁻
+        title: 'Step 11: Make NaOH',
+        description: 'Drag <b>Na⁺</b> (click Na if needed) onto <b>OH⁻</b> from the palette to form NaOH.',
+        highlightSelector: '.element-card[data-symbol="Na"], .palette-card[data-symbol="OH⁻"]',
+        autoAdvance: true,
+        advanceOn: 'NaOH-created'
+    },
+    {   // step 11 – combine HCl + NaOH
+        title: 'Step 12: Neutralise!',
+        description: 'Drag the <b>HCl</b> card onto the <b>NaOH</b> card (by their body, not the grip handle) to see them react.',
+        highlightSelector: '.product-card[data-symbol="HCl"], .product-card[data-symbol="NaOH"]',
+        autoAdvance: true,
+        advanceOn: 'neutralisation'
+    },
+    {   // step 12 – open Reaction Log
+        title: 'Step 13: View the Reaction Log',
+        description: 'Click the <b>📋 Log</b> button to see the balanced equation and conditions. (Click Next when done.)',
+        highlightSelector: '#toggle-log',
+        autoAdvance: false
+    },
+    {   // step 13 – clear all
+        title: 'Step 14: Clear the table',
+        description: 'Click <b>Clear All</b> to reset everything.',
+        highlightSelector: '#clear-all',
+        autoAdvance: true,
+        advanceOn: 'clear-all'
+    }
+];
+
+function highlightElements(selector) {
+    if (!selector) return;
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(el => el.classList.add('tutorial-highlight'));
+    if (elements.length > 0) {
+        elements[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function removeAllHighlights() {
+    document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+}
+
+function cleanupListeners() {
+    tutorialListeners.forEach(fn => fn());
+    tutorialListeners = [];
+}
+
+function setTutorialStep(stepIndex) {
+    if (stepIndex >= tutorialSteps.length) {
+        endTutorial();
+        return;
+    }
+    currentTutorialStep = stepIndex;
+    const step = tutorialSteps[stepIndex];
+    tutorialTitle.textContent = step.title;
+    tutorialDesc.innerHTML = step.description;
+    tutorialNextBtn.style.display = step.autoAdvance ? 'none' : 'inline-block';
+
+    removeAllHighlights();
+    highlightElements(step.highlightSelector);
+
+    cleanupListeners();
+
+    if (step.autoAdvance) {
+        if (step.advanceOn === 'hash-element-1') {
+            const handler = () => {
+                if (window.location.hash === '#element/1') {
+                    nextStep();
+                }
+            };
+            window.addEventListener('hashchange', handler);
+            tutorialListeners.push(() => window.removeEventListener('hashchange', handler));
+        }
+        else if (step.advanceOn === 'back-to-table') {
+            const backBtn = document.getElementById('back-to-table');
+            const handler = () => {
+                setTimeout(nextStep, 100);
+            };
+            if (backBtn) {
+                backBtn.addEventListener('click', handler);
+                tutorialListeners.push(() => backBtn.removeEventListener('click', handler));
+            }
+        }
+        else if (step.advanceOn === 'water-created') {
+            window.__tutorialCheckWater = (productSymbol) => {
+                if (productSymbol === 'H₂O' && currentTutorialStep === 2) {
+                    nextStep();
+                }
+            };
+            tutorialListeners.push(() => { delete window.__tutorialCheckWater; });
+        }
+        else if (step.advanceOn === 'product-info-opened') {
+            window.__tutorialCheckProductInfo = () => {
+                if (currentTutorialStep === 4) {
+                    nextStep();
+                }
+            };
+            tutorialListeners.push(() => { delete window.__tutorialCheckProductInfo; });
+        }
+        else if (step.advanceOn === 'product-info-closed') {
+            window.__tutorialCheckProductInfoClosed = () => {
+                if (currentTutorialStep === 5) {
+                    nextStep();
+                }
+            };
+            tutorialListeners.push(() => { delete window.__tutorialCheckProductInfoClosed; });
+        }
+        else if (step.advanceOn === 'ion-mode') {
+            const handler = () => {
+                if (currentMode === 'ion') {
+                    nextStep();
+                }
+            };
+            const ionBtn = document.getElementById('mode-ion');
+            if (ionBtn) {
+                ionBtn.addEventListener('click', handler);
+                tutorialListeners.push(() => ionBtn.removeEventListener('click', handler));
+            }
+            if (currentMode === 'ion') {
+                nextStep();
+            }
+        }
+        else if (step.advanceOn === 'HCl-created') {
+            window.__tutorialCheckHCl = (productSymbol) => {
+                if (productSymbol === 'HCl' && currentTutorialStep === 8) {
+                    nextStep();
+                }
+            };
+            tutorialListeners.push(() => { delete window.__tutorialCheckHCl; });
+        }
+        else if (step.advanceOn === 'NaOH-created') {
+            window.__tutorialCheckNaOH = (productSymbol) => {
+                if (productSymbol === 'NaOH' && currentTutorialStep === 10) {
+                    nextStep();
+                }
+            };
+            tutorialListeners.push(() => { delete window.__tutorialCheckNaOH; });
+        }
+        else if (step.advanceOn === 'neutralisation') {
+            window.__tutorialCheckNeutralisation = () => {
+                if (currentTutorialStep === 11) {
+                    nextStep();
+                }
+            };
+            tutorialListeners.push(() => { delete window.__tutorialCheckNeutralisation; });
+        }
+        else if (step.advanceOn === 'clear-all') {
+            const clearBtn = document.getElementById('clear-all');
+            const handler = () => {
+                nextStep();
+            };
+            if (clearBtn) {
+                clearBtn.addEventListener('click', handler);
+                tutorialListeners.push(() => clearBtn.removeEventListener('click', handler));
+            }
+        }
+    }
+}
+
+function nextStep() {
+    cleanupListeners();
+    removeAllHighlights();
+    setTutorialStep(currentTutorialStep + 1);
+}
+
+function startTutorial() {
+    if (tutorialActive) return;
+    tutorialActive = true;
+    tutorialOverlay.style.display = 'flex';
+    void tutorialOverlay.offsetWidth;
+    tutorialOverlay.classList.add('show');
+    setTutorialStep(0);
+}
+
+function endTutorial() {
+    tutorialActive = false;
+    cleanupListeners();
+    removeAllHighlights();
+    tutorialOverlay.classList.remove('show');
+    setTimeout(() => {
+        tutorialOverlay.style.display = 'none';
+    }, 300);
+    localStorage.setItem('sparkchemweb-tutorial-seen', 'true');
+}
+
+if (helpBtn) {
+    helpBtn.addEventListener('click', startTutorial);
+}
+
+if (tutorialNextBtn) {
+    tutorialNextBtn.addEventListener('click', nextStep);
+}
+
+if (tutorialSkipBtn) {
+    tutorialSkipBtn.addEventListener('click', endTutorial);
+}
+
+if (!localStorage.getItem('sparkchemweb-tutorial-seen')) {
+    window.addEventListener('load', () => {
+        setTimeout(startTutorial, 500);
+    });
+}
+
+// Monkey‑patch createProductCard to detect specific products for tutorial
+const originalCreateProductCard = createProductCard;
+createProductCard = function(product, initialX, initialY) {
+    const card = originalCreateProductCard(product, initialX, initialY);
+    // Water detection
+    if (window.__tutorialCheckWater && product.symbol === 'H₂O') {
+        window.__tutorialCheckWater(product.symbol);
+    }
+    // HCl detection
+    if (window.__tutorialCheckHCl && (product.symbol === 'HCl' || product.formula === 'HCl')) {
+        window.__tutorialCheckHCl(product.symbol);
+    }
+    // NaOH detection
+    if (window.__tutorialCheckNaOH && (product.symbol === 'NaOH' || product.formula === 'NaOH')) {
+        window.__tutorialCheckNaOH(product.symbol);
+    }
+    return card;
+};
