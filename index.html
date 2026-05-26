@@ -26,31 +26,33 @@
     <div id="table-view">
         <!-- Relative wrapper for overlay controls AND product cards -->
         <div class="table-relative-wrapper">
-            <!-- Temperature Slider Overlay -->
-            <div class="temp-overlay">
-                <span>🌡️ Temperature</span>
-                <input type="range" id="temp-slider" min="-273" max="1000" value="25" step="1">
-                <span id="temp-display">25°C</span>
+
+            <!-- ==== SINGLE FLEX CONTAINER FOR CONDITIONS ==== -->
+            <div class="conditions-overlay" id="conditions-overlay">
+                <div class="temp-overlay">
+                    <span>🌡️ Temperature</span>
+                    <input type="range" id="temp-slider" min="-273" max="1000" value="25" step="1">
+                    <span id="temp-display">25°C</span>
+                </div>
+                <div class="pressure-overlay">
+                    <span>🎈 Pressure</span>
+                    <input type="range" id="pressure-slider" min="1" max="200" value="101" step="1">
+                    <span id="pressure-display">101 kPa</span>
+                </div>
+                <div class="catalyst-overlay">
+                    <span>⭐ Catalyst</span>
+                    <select id="catalyst-select">
+                        <option value="none">None</option>
+                        <option value="MnO2">Manganese(IV) oxide</option>
+                        <option value="Fe">Iron</option>
+                        <option value="V2O5">Vanadium(V) oxide</option>
+                        <option value="Pt">Platinum</option>
+                        <option value="H3PO4">Phosphoric acid</option>
+                        <option value="H2SO4">Conc. sulfuric acid</option>
+                    </select>
+                </div>
             </div>
-            <!-- Pressure Slider Overlay -->
-            <div class="pressure-overlay">
-                <span>🎈 Pressure</span>
-                <input type="range" id="pressure-slider" min="1" max="200" value="101" step="1">
-                <span id="pressure-display">101 kPa</span>
-            </div>
-            <!-- Catalyst Dropdown Overlay -->
-            <div class="catalyst-overlay">
-                <span>⭐ Catalyst</span>
-                <select id="catalyst-select">
-                    <option value="none">None</option>
-                    <option value="MnO2">Manganese(IV) oxide</option>
-                    <option value="Fe">Iron</option>
-                    <option value="V2O5">Vanadium(V) oxide</option>
-                    <option value="Pt">Platinum</option>
-                    <option value="H3PO4">Phosphoric acid</option>
-                    <option value="H2SO4">Conc. sulfuric acid</option>
-                </select>
-            </div>
+            <!-- ============================================ -->
 
             <!-- Main Table with Group and Period Labels -->
             <div class="table-wrapper">
