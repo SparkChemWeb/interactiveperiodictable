@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Header Row with Atom/Ion and Clear All -->
+    <!-- Header Row with Atom/Ion, Clear All, and Overlay Toggles -->
     <div class="header-row">
         <div class="header-left">
             <button id="mode-atom" class="mode-btn active">Atom</button>
@@ -15,6 +15,8 @@
         </div>
         <h1>🧪 Periodic Table 🧪</h1>
         <div class="header-right">
+            <button id="toggle-ions" class="mode-btn">⚛️ Ions</button>
+            <button id="toggle-log" class="mode-btn">📋 Log</button>
             <button id="clear-all" class="clear-btn">Clear All</button>
         </div>
     </div>
@@ -108,19 +110,22 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- ========== ION PALETTE ROW ========== -->
-        <div id="ion-palette" style="margin-top: 10px;">
-            <div class="palette-grid-wrapper">
-                <div id="palette-grid" class="palette-grid"></div>
-            </div>
+    <!-- ========== REACTION LOG OVERLAY ========== -->
+    <div id="log-overlay" class="overlay-panel" style="display: none;">
+        <div id="reaction-log">
+            <h3>📋 Reaction Log <span class="overlay-close" data-overlay="log-overlay">✕</span></h3>
+            <div id="log-entries"></div>
         </div>
     </div>
 
-    <!-- ========== REACTION LOG (outside #table-view) ========== -->
-    <div id="reaction-log">
-        <h3>📋 Reaction Log</h3>
-        <div id="log-entries"></div>
+    <!-- ========== ION PALETTE OVERLAY ========== -->
+    <div id="ions-overlay" class="overlay-panel" style="display: none;">
+        <div id="ion-palette">
+            <h3>⚛️ Common Ions <span class="overlay-close" data-overlay="ions-overlay">✕</span></h3>
+            <div id="palette-grid" class="palette-grid"></div>
+        </div>
     </div>
 
     <!-- Element Detail View (Hidden by default) -->
@@ -156,22 +161,6 @@
         </div>
     </div>
 
-    <!-- Product Info Pop‑up -->
-    <div id="product-popup" class="product-popup" style="display: none;">
-        <div class="product-popup-content">
-            <span id="product-popup-close" class="product-popup-close">&times;</span>
-            <h3 id="product-popup-symbol"></h3>
-            <p id="product-popup-name"></p>
-            <table class="product-popup-table">
-                <tr><td><strong>Formula:</strong></td><td id="product-popup-formula"></td></tr>
-                <tr><td><strong>Molecular Mass:</strong></td><td id="product-popup-mass"></td></tr>
-                <tr><td><strong>State:</strong></td><td id="product-popup-state"></td></tr>
-                <tr><td><strong>Reaction Type:</strong></td><td id="product-popup-type"></td></tr>
-                <tr><td><strong>Description:</strong></td><td id="product-popup-description"></td></tr>
-            </table>
-        </div>
-    </div>
-
     <!-- Ion Info Pop‑up -->
     <div id="ion-popup" class="ion-popup" style="display: none;">
         <div class="ion-popup-content">
@@ -184,6 +173,22 @@
                 <tr><td><strong>With NaOH:</strong></td><td id="ion-popup-hydroxide"></td></tr>
                 <tr><td><strong>With NH₃(aq):</strong></td><td id="ion-popup-ammonia"></td></tr>
                 <tr><td><strong>Anion tests:</strong></td><td id="ion-popup-anion"></td></tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Product Info Pop‑up -->
+    <div id="product-popup" class="product-popup" style="display: none;">
+        <div class="product-popup-content">
+            <span id="product-popup-close" class="product-popup-close">&times;</span>
+            <h3 id="product-popup-symbol"></h3>
+            <p id="product-popup-name"></p>
+            <table class="product-popup-table">
+                <tr><td><strong>Formula:</strong></td><td id="product-popup-formula"></td></tr>
+                <tr><td><strong>Molecular Mass:</strong></td><td id="product-popup-mass"></td></tr>
+                <tr><td><strong>State:</strong></td><td id="product-popup-state"></td></tr>
+                <tr><td><strong>Reaction Type:</strong></td><td id="product-popup-type"></td></tr>
+                <tr><td><strong>Description:</strong></td><td id="product-popup-description"></td></tr>
             </table>
         </div>
     </div>
