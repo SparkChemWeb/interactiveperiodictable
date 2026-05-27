@@ -426,6 +426,13 @@ body.ion-mode .info-btn {
     white-space: nowrap;
 }
 
+.product-state {
+    font-size: 0.5rem;
+    margin-left: 1px;
+    margin-top: 8px;
+    display: inline-block;      /* keeps it aligned like element state */
+}
+
 .product-card:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
@@ -1052,6 +1059,31 @@ body.ion-mode .info-btn {
     outline: 2px dashed #007aff !important;
     outline-offset: 2px;
     z-index: 20;
+}
+
+/* ============================================
+   ROTATE HINT (portrait phones)
+   ============================================ */
+.rotate-hint {
+    display: none;
+}
+@media (max-width: 700px) and (orientation: portrait) {
+    .rotate-hint {
+        display: flex;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        text-align: center;
+        flex-direction: column;
+    }
+    #table-view, .header-row, .overlay-panel {
+        display: none !important;
+    }
 }
 
 /* ============================================
