@@ -1847,12 +1847,10 @@ createProductCard = function(product, initialX, initialY) {
 };
 
 // ============================================
-// TOUCH DRAG‑AND‑DROP SUPPORT (with tap detection)
+// TOUCH DRAG‑AND‑DROP SUPPORT (tap‑friendly)
 // ============================================
 let touchDragData = null;
 let touchGhost = null;
-let touchStartX = 0, touchStartY = 0;
-let touchStartElement = null;   // store the element where touch started
 
 function enableTouchDrag() {
     document.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -1864,10 +1862,14 @@ function enableTouchDrag() {
 function onTouchStart(e) {
     const touch = e.changedTouches[0];
     const target = document.elementFromPoint(touch.clientX, touch.clientY);
+
+    // If the touch is on an info button, let the native click handle it
+    if (target?.closest('.info-btn')) return;
+
     const draggable = target?.closest('[draggable="true"]');
     if (!draggable) return;
 
-    // Store the same data as dragstart would
+    // Build drag data
     if (draggable.classList.contains('element-card')) {
         const atomicNumber = parseInt(draggable.dataset.atomicNumber);
         const element = elementsData.find(el => el.atomicNumber === atomicNumber);
@@ -1895,12 +1897,7 @@ function onTouchStart(e) {
         return;
     }
 
-    // Remember starting position and element for possible tap
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
-    touchStartElement = draggable;
-
-    // Create ghost
+    // Create visual ghost
     touchGhost = draggable.cloneNode(true);
     touchGhost.style.position = 'fixed';
     touchGhost.style.zIndex = '9999';
@@ -1910,12 +1907,13 @@ function onTouchStart(e) {
     touchGhost.style.height = draggable.offsetHeight + 'px';
     document.body.appendChild(touchGhost);
     moveGhost(touch.clientX, touch.clientY);
-    e.preventDefault();
+
+    // Do NOT prevent default – allow the tap to become a click later
 }
 
 function onTouchMove(e) {
     if (!touchDragData) return;
-    e.preventDefault();
+    e.preventDefault();   // stop scrolling while dragging
     const touch = e.changedTouches[0];
     moveGhost(touch.clientX, touch.clientY);
 
@@ -1931,11 +1929,6 @@ function onTouchEnd(e) {
     if (!touchDragData) return;
 
     const touch = e.changedTouches[0];
-    const dx = touch.clientX - touchStartX;
-    const dy = touch.clientY - touchStartY;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    const wasTap = dist < 5;   // less than 5px = tap
-
     const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
     const target = elemBelow?.closest('[draggable="true"]');
 
@@ -1947,7 +1940,7 @@ function onTouchEnd(e) {
     document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
 
     if (target) {
-        // Drop on a different draggable → reaction
+        // Drop on a target → reaction
         if (target.classList.contains('element-card')) {
             const atomicNumber = parseInt(target.dataset.atomicNumber);
             const element = elementsData.find(el => el.atomicNumber === atomicNumber);
@@ -1965,14 +1958,9 @@ function onTouchEnd(e) {
         } else if (target.classList.contains('product-card')) {
             handleReaction(touchDragData, { clientX: touch.clientX, clientY: touch.clientY }, target);
         }
-    } else if (wasTap && touchStartElement) {
-        // No drop target and finger barely moved → treat as a tap
-        touchStartElement.click();
     }
 
-    // Reset drag state
     touchDragData = null;
-    touchStartElement = null;
 }
 
 function moveGhost(x, y) {
