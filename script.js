@@ -1847,10 +1847,13 @@ createProductCard = function(product, initialX, initialY) {
 };
 
 // ============================================
-// TOUCH DRAG‑AND‑DROP SUPPORT (tap‑friendly)
+// TOUCH DRAG‑AND‑DROP SUPPORT (tap‑friendly, no self‑drop on tap)
 // ============================================
 let touchDragData = null;
 let touchGhost = null;
+let touchStartX = 0, touchStartY = 0;
+let touchStarted = false;        // true once we pass the move threshold
+const DRAG_THRESHOLD = 5;        // px – finger must move this far to start a drag
 
 function enableTouchDrag() {
     document.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -1863,26 +1866,33 @@ function onTouchStart(e) {
     const touch = e.changedTouches[0];
     const target = document.elementFromPoint(touch.clientX, touch.clientY);
 
-    // If the touch is on an info button, let the native click handle it
+    // Don't interfere with info‑button taps
     if (target?.closest('.info-btn')) return;
 
     const draggable = target?.closest('[draggable="true"]');
     if (!draggable) return;
 
-    // Build drag data
+    // Store starting position – we haven't started a real drag yet
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchStarted = false;
+    touchDragData = null;   // not dragging until threshold is passed
+
+    // Pre‑build the data that would be used if a drag actually happens
     if (draggable.classList.contains('element-card')) {
         const atomicNumber = parseInt(draggable.dataset.atomicNumber);
         const element = elementsData.find(el => el.atomicNumber === atomicNumber);
         if (!element) return;
         const ionIdx = ionIndexMap.get(atomicNumber) || 0;
         const qty = elementQuantities.get(atomicNumber) || 1;
-        touchDragData = { atomicNumber, ionIndex: ionIdx, quantity: qty };
+        touchDragData = { atomicNumber, ionIndex: ionIdx, quantity: qty, sourceEl: draggable };
     } else if (draggable.classList.contains('palette-card')) {
         touchDragData = {
             symbol: draggable.dataset.symbol,
             charge: parseInt(draggable.dataset.charge),
             name: draggable.dataset.name,
-            quantity: paletteQuantities.get(draggable.dataset.symbol) || 1
+            quantity: paletteQuantities.get(draggable.dataset.symbol) || 1,
+            sourceEl: draggable
         };
     } else if (draggable.classList.contains('product-card')) {
         touchDragData = {
@@ -1891,76 +1901,96 @@ function onTouchStart(e) {
             formula: draggable.dataset.formula,
             quantity: parseInt(draggable.dataset.quantity) || 1,
             balanced: draggable.dataset.balanced || '',
-            category: draggable.dataset.category || classifyCompound({ name: draggable.dataset.name, formula: draggable.dataset.formula })
+            category: draggable.dataset.category || classifyCompound({ name: draggable.dataset.name, formula: draggable.dataset.formula }),
+            sourceEl: draggable
         };
     } else {
         return;
     }
 
-    // Create visual ghost
-    touchGhost = draggable.cloneNode(true);
-    touchGhost.style.position = 'fixed';
-    touchGhost.style.zIndex = '9999';
-    touchGhost.style.pointerEvents = 'none';
-    touchGhost.style.opacity = '0.8';
-    touchGhost.style.width = draggable.offsetWidth + 'px';
-    touchGhost.style.height = draggable.offsetHeight + 'px';
-    document.body.appendChild(touchGhost);
-    moveGhost(touch.clientX, touch.clientY);
-
-    // Do NOT prevent default – allow the tap to become a click later
+    // Do NOT prevent default – allows the click event to fire if finger doesn't move
 }
 
 function onTouchMove(e) {
     if (!touchDragData) return;
-    e.preventDefault();   // stop scrolling while dragging
     const touch = e.changedTouches[0];
-    moveGhost(touch.clientX, touch.clientY);
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
 
-    document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
-    const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (elemBelow && elemBelow.closest('[draggable="true"]') && elemBelow.closest('[draggable="true"]') !== touchGhost) {
-        const target = elemBelow.closest('[draggable="true"]');
-        target.classList.add('drag-hover');
+    // Start dragging only after moving past the threshold
+    if (!touchStarted && dist >= DRAG_THRESHOLD) {
+        touchStarted = true;
+        // Create visual ghost
+        const source = touchDragData.sourceEl;
+        touchGhost = source.cloneNode(true);
+        touchGhost.style.position = 'fixed';
+        touchGhost.style.zIndex = '9999';
+        touchGhost.style.pointerEvents = 'none';
+        touchGhost.style.opacity = '0.8';
+        touchGhost.style.width = source.offsetWidth + 'px';
+        touchGhost.style.height = source.offsetHeight + 'px';
+        document.body.appendChild(touchGhost);
+        // Now prevent scrolling
+        e.preventDefault();
+    }
+
+    if (touchStarted) {
+        e.preventDefault();   // keep preventing once drag has started
+        moveGhost(touch.clientX, touch.clientY);
+
+        // Highlight drop target
+        document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
+        const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (elemBelow && elemBelow.closest('[draggable="true"]') && elemBelow.closest('[draggable="true"]') !== touchGhost) {
+            const target = elemBelow.closest('[draggable="true"]');
+            target.classList.add('drag-hover');
+        }
     }
 }
 
 function onTouchEnd(e) {
     if (!touchDragData) return;
 
-    const touch = e.changedTouches[0];
-    const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-    const target = elemBelow?.closest('[draggable="true"]');
+    if (touchStarted) {
+        // A real drag ended – perform drop logic
+        const touch = e.changedTouches[0];
+        const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        const target = elemBelow?.closest('[draggable="true"]');
 
-    // Clean up ghost and highlights
-    if (touchGhost) {
-        touchGhost.remove();
-        touchGhost = null;
-    }
-    document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
-
-    if (target) {
-        // Drop on a target → reaction
-        if (target.classList.contains('element-card')) {
-            const atomicNumber = parseInt(target.dataset.atomicNumber);
-            const element = elementsData.find(el => el.atomicNumber === atomicNumber);
-            if (element) {
-                handleReaction(touchDragData, { clientX: touch.clientX, clientY: touch.clientY }, element);
+        if (target) {
+            if (target.classList.contains('element-card')) {
+                const atomicNumber = parseInt(target.dataset.atomicNumber);
+                const element = elementsData.find(el => el.atomicNumber === atomicNumber);
+                if (element) {
+                    handleReaction(touchDragData, { clientX: touch.clientX, clientY: touch.clientY }, element);
+                }
+            } else if (target.classList.contains('palette-card')) {
+                const ion = {
+                    symbol: target.dataset.symbol,
+                    charge: parseInt(target.dataset.charge),
+                    name: target.dataset.name,
+                    root: target.dataset.root
+                };
+                handleReaction(touchDragData, { clientX: touch.clientX, clientY: touch.clientY }, ion);
+            } else if (target.classList.contains('product-card')) {
+                handleReaction(touchDragData, { clientX: touch.clientX, clientY: touch.clientY }, target);
             }
-        } else if (target.classList.contains('palette-card')) {
-            const ion = {
-                symbol: target.dataset.symbol,
-                charge: parseInt(target.dataset.charge),
-                name: target.dataset.name,
-                root: target.dataset.root
-            };
-            handleReaction(touchDragData, { clientX: touch.clientX, clientY: touch.clientY }, ion);
-        } else if (target.classList.contains('product-card')) {
-            handleReaction(touchDragData, { clientX: touch.clientX, clientY: touch.clientY }, target);
         }
-    }
 
+        // Clean up ghost
+        if (touchGhost) {
+            touchGhost.remove();
+            touchGhost = null;
+        }
+        document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
+    }
+    // If !touchStarted, it was a tap – the native click event will handle it automatically
+
+    // Reset everything
     touchDragData = null;
+    touchStarted = false;
+    touchGhost = null;
 }
 
 function moveGhost(x, y) {
