@@ -430,7 +430,7 @@ body.ion-mode .info-btn {
     font-size: 0.5rem;
     margin-left: 1px;
     margin-top: 8px;
-    display: inline-block;      /* keeps it aligned like element state */
+    display: inline-block;
 }
 
 .product-card:hover {
@@ -515,6 +515,13 @@ body.ion-mode .info-btn {
 .product-card.prod-oxide {
     background-color: #ffccb3;
     border-color: #ff6600;
+}
+
+/* Allow touch‑drag but don't block taps */
+.element-card,
+.palette-card,
+.product-card {
+    touch-action: none;
 }
 
 /* ============================================
