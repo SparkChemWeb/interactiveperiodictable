@@ -1,4 +1,4 @@
-console.log('🚀 SparkChemWeb script v6.0 – touch drag + mobile + hover highlight');
+console.log('🚀 SparkChemWeb script v6.1 – final fixes');
 
 // ============================================
 // GLOBAL VARIABLES
@@ -585,6 +585,11 @@ fetch('data/elements.json')
         router();
         positionOverlayControls();
         window.addEventListener('resize', () => { positionOverlayControls(); updateCardSize(); });
+
+        // Start tutorial only after rendering is complete
+        if (!localStorage.getItem('sparkchemweb-tutorial-seen')) {
+            setTimeout(startTutorial, 300);
+        }
     })
     .catch(error => {
         console.error('Error loading data:', error);
@@ -1077,7 +1082,7 @@ function buildIonPalette() {
 }
 
 // ============================================
-// CREATE PRODUCT CARD (with colour class)
+// CREATE PRODUCT CARD (with colour class and touch grip support)
 // ============================================
 function createProductCard(product, initialX, initialY) {
     const card = document.createElement('div');
@@ -1110,6 +1115,8 @@ function createProductCard(product, initialX, initialY) {
     grip.title = 'Drag to move';
     card.appendChild(grip);
     let dragState = { isDragging: false, startX: 0, startY: 0, left: 0, top: 0 };
+
+    // ---- MOUSE grip handlers ----
     grip.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
         e.stopPropagation();
@@ -1131,10 +1138,40 @@ function createProductCard(product, initialX, initialY) {
     window.addEventListener('mouseup', () => {
         if (dragState.isDragging) { dragState.isDragging = false; card.style.cursor = ''; }
     });
+
+    // ---- TOUCH grip handlers ----
+    grip.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+        const touch = e.changedTouches[0];
+        dragState.isDragging = true;
+        dragState.startX = touch.clientX;
+        dragState.startY = touch.clientY;
+        dragState.left = card.offsetLeft;
+        dragState.top = card.offsetTop;
+        card.style.cursor = 'grabbing';
+        e.preventDefault();
+    }, { passive: false });
+    grip.addEventListener('touchmove', (e) => {
+        if (!dragState.isDragging) return;
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - dragState.startX;
+        const dy = touch.clientY - dragState.startY;
+        card.style.left = (dragState.left + dx) + 'px';
+        card.style.top = (dragState.top + dy) + 'px';
+    }, { passive: false });
+    grip.addEventListener('touchend', () => {
+        dragState.isDragging = false;
+        card.style.cursor = '';
+    });
+
+    // ---- Append card to wrapper ----
     const wrapper = document.querySelector('.table-relative-wrapper');
     card.style.left = initialX + 'px';
     card.style.top = initialY + 'px';
     wrapper.appendChild(card);
+
+    // ---- Info button ----
     const infoBtn = document.createElement('span');
     infoBtn.className = 'info-btn';
     infoBtn.textContent = 'ⓘ';
@@ -1144,6 +1181,8 @@ function createProductCard(product, initialX, initialY) {
         showProductDetail(card);
     });
     card.appendChild(infoBtn);
+
+    // ---- Right‑click ----
     card.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         let qty = parseInt(card.dataset.quantity) || 1;
@@ -1157,6 +1196,8 @@ function createProductCard(product, initialX, initialY) {
         }
         badge.textContent = qty;
     });
+
+    // ---- Drag‑to‑react (card itself) ----
     card.draggable = true;
     addDragHoverHandlers(card);
     card.addEventListener('dragstart', (e) => {
@@ -1175,6 +1216,7 @@ function createProductCard(product, initialX, initialY) {
         const dragData = JSON.parse(rawData);
         handleReaction(dragData, e, card);
     });
+
     return card;
 }
 
@@ -1786,11 +1828,7 @@ if (tutorialSkipBtn) {
     tutorialSkipBtn.addEventListener('click', endTutorial);
 }
 
-if (!localStorage.getItem('sparkchemweb-tutorial-seen')) {
-    window.addEventListener('load', () => {
-        setTimeout(startTutorial, 500);
-    });
-}
+// Auto‑start tutorial is now inside the fetch chain (after render)
 
 // Monkey‑patch createProductCard to detect specific products for tutorial
 const originalCreateProductCard = createProductCard;
@@ -1809,11 +1847,12 @@ createProductCard = function(product, initialX, initialY) {
 };
 
 // ============================================
-// TOUCH DRAG‑AND‑DROP SUPPORT
+// TOUCH DRAG‑AND‑DROP SUPPORT (with tap detection)
 // ============================================
 let touchDragData = null;
 let touchGhost = null;
 let touchStartX = 0, touchStartY = 0;
+let touchStartElement = null;   // store the element where touch started
 
 function enableTouchDrag() {
     document.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -1828,6 +1867,7 @@ function onTouchStart(e) {
     const draggable = target?.closest('[draggable="true"]');
     if (!draggable) return;
 
+    // Store the same data as dragstart would
     if (draggable.classList.contains('element-card')) {
         const atomicNumber = parseInt(draggable.dataset.atomicNumber);
         const element = elementsData.find(el => el.atomicNumber === atomicNumber);
@@ -1855,6 +1895,12 @@ function onTouchStart(e) {
         return;
     }
 
+    // Remember starting position and element for possible tap
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchStartElement = draggable;
+
+    // Create ghost
     touchGhost = draggable.cloneNode(true);
     touchGhost.style.position = 'fixed';
     touchGhost.style.zIndex = '9999';
@@ -1863,8 +1909,6 @@ function onTouchStart(e) {
     touchGhost.style.width = draggable.offsetWidth + 'px';
     touchGhost.style.height = draggable.offsetHeight + 'px';
     document.body.appendChild(touchGhost);
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
     moveGhost(touch.clientX, touch.clientY);
     e.preventDefault();
 }
@@ -1885,10 +1929,17 @@ function onTouchMove(e) {
 
 function onTouchEnd(e) {
     if (!touchDragData) return;
+
     const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const wasTap = dist < 5;   // less than 5px = tap
+
     const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
     const target = elemBelow?.closest('[draggable="true"]');
 
+    // Clean up ghost and highlights
     if (touchGhost) {
         touchGhost.remove();
         touchGhost = null;
@@ -1896,6 +1947,7 @@ function onTouchEnd(e) {
     document.querySelectorAll('.drag-hover').forEach(el => el.classList.remove('drag-hover'));
 
     if (target) {
+        // Drop on a different draggable → reaction
         if (target.classList.contains('element-card')) {
             const atomicNumber = parseInt(target.dataset.atomicNumber);
             const element = elementsData.find(el => el.atomicNumber === atomicNumber);
@@ -1913,9 +1965,14 @@ function onTouchEnd(e) {
         } else if (target.classList.contains('product-card')) {
             handleReaction(touchDragData, { clientX: touch.clientX, clientY: touch.clientY }, target);
         }
+    } else if (wasTap && touchStartElement) {
+        // No drop target and finger barely moved → treat as a tap
+        touchStartElement.click();
     }
 
+    // Reset drag state
     touchDragData = null;
+    touchStartElement = null;
 }
 
 function moveGhost(x, y) {
@@ -1924,7 +1981,7 @@ function moveGhost(x, y) {
     touchGhost.style.top = (y - touchGhost.offsetHeight / 2) + 'px';
 }
 
-// Enable touch support on touch-capable devices
+// Enable touch support on touch‑capable devices
 if ('ontouchstart' in window) {
     window.addEventListener('DOMContentLoaded', enableTouchDrag);
 }
