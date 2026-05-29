@@ -229,5 +229,59 @@
         }
       ]
     }
+  },
+    {
+    "symbol": "NO₂⁻",
+    "charge": -1,
+    "name": "Nitrite ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not applicable",
+      "hydroxide": "Not applicable",
+      "ammonia": "Not applicable",
+      "anionTests": [
+        { "reagent": "Dilute acid", "observation": "Brown gas (NO₂) evolved" }
+      ]
+    }
+  },
+  {
+    "symbol": "SO₃²⁻",
+    "charge": -2,
+    "name": "Sulfite ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not applicable",
+      "hydroxide": "Not applicable",
+      "ammonia": "Not applicable",
+      "anionTests": [
+        { "reagent": "Dilute acid", "observation": "Pungent gas (SO₂) evolved" }
+      ]
+    }
+  },
+  {
+    "symbol": "HSO₄⁻",
+    "charge": -1,
+    "name": "Hydrogensulfate ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not applicable",
+      "hydroxide": "Not applicable",
+      "ammonia": "Not applicable",
+      "anionTests": []
+    }
+  },
+  {
+    "symbol": "HCO₃⁻",
+    "charge": -1,
+    "name": "Hydrogencarbonate ion",
+    "colour": "colourless",
+    "tests": {
+      "flame": "Not applicable",
+      "hydroxide": "Not applicable",
+      "ammonia": "Not applicable",
+      "anionTests": [
+        { "reagent": "Dilute acid", "observation": "Effervescence (CO₂) – turns limewater milky" }
+      ]
+    }
   }
 ]
