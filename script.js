@@ -1,4 +1,4 @@
-console.log('🚀 SparkChemWeb script v6.2 – ion log + no multiply');
+console.log('🚀 SparkChemWeb script v6.3 – combined fix 1 & 2');
 
 // ============================================
 // GLOBAL VARIABLES
@@ -30,13 +30,18 @@ const solubilityRules = {
     hydroxides: { soluble: false, exceptions: ['Na', 'K', 'Ca', 'NH4'] }
 };
 
+// Expanded polyatomic ion palette
 const paletteIons = [
-    { symbol: "OH⁻",  charge: -1, name: "Hydroxide",   root: "OH" },
-    { symbol: "NO₃⁻", charge: -1, name: "Nitrate",    root: "NO₃" },
-    { symbol: "SO₄²⁻",charge: -2, name: "Sulfate",    root: "SO₄" },
-    { symbol: "CO₃²⁻",charge: -2, name: "Carbonate",  root: "CO₃" },
-    { symbol: "NH₄⁺", charge: +1, name: "Ammonium",   root: "NH₄" },
-    { symbol: "PO₄³⁻",charge: -3, name: "Phosphate",  root: "PO₄" }
+    { symbol: "OH⁻",   charge: -1, name: "Hydroxide",        root: "OH" },
+    { symbol: "NO₃⁻",  charge: -1, name: "Nitrate",         root: "NO₃" },
+    { symbol: "NO₂⁻",  charge: -1, name: "Nitrite",         root: "NO₂" },
+    { symbol: "SO₄²⁻", charge: -2, name: "Sulfate",         root: "SO₄" },
+    { symbol: "SO₃²⁻", charge: -2, name: "Sulfite",         root: "SO₃" },
+    { symbol: "HSO₄⁻", charge: -1, name: "Hydrogensulfate", root: "HSO₄" },
+    { symbol: "CO₃²⁻", charge: -2, name: "Carbonate",       root: "CO₃" },
+    { symbol: "HCO₃⁻", charge: -1, name: "Hydrogencarbonate",root: "HCO₃" },
+    { symbol: "NH₄⁺",  charge: +1, name: "Ammonium",        root: "NH₄" },
+    { symbol: "PO₄³⁻", charge: -3, name: "Phosphate",       root: "PO₄" }
 ];
 
 // ============================================
@@ -58,7 +63,7 @@ const reactionMap = {
     "Na+F":        { symbol: "NaF", name: "Sodium fluoride", formula: "NaF", type: "metal+halogen", balanced: "2Na + F₂ → 2NaF" },
     "Ca+Cl":       { symbol: "CaCl₂", name: "Calcium chloride", formula: "CaCl₂", type: "metal+halogen", balanced: "Ca + Cl₂ → CaCl₂" },
     "K+Cl":        { symbol: "KCl", name: "Potassium chloride", formula: "KCl", type: "metal+halogen", balanced: "2K + Cl₂ → 2KCl" },
-    "Li+O":        { symbol: "Li₂O", name: "Lithium oxide", formula: "Li₂O", type: "metal+oxygen", balanced: "4Li + O₂ → 2Li₂O" }
+    "Li+O":        { symbol: "Li₂O", name: "Lithium oxide", formula: "Li₂O", type: "metal+oxygen", balanced: "4Li + O₂ → 2Li₂O" },
 };
 
 // ============================================
@@ -182,7 +187,7 @@ const reactionPatterns = [
             ];
         }
     },
-    // 4. Carbonate + Acid
+    // 4. Carbonate + Acid (includes special case for carbonic acid)
     {
         reactantTypes: ['carbonate', 'acid'],
         description: 'Carbonate + Acid',
@@ -191,6 +196,30 @@ const reactionPatterns = [
             const catB = getReactantCategory(reactantB);
             const carbonate = catA === 'carbonate' ? reactantA : reactantB;
             const acid      = catA === 'acid'      ? reactantA : reactantB;
+
+            // --- Special case: carbonic acid → bicarbonate ---
+            const rawAcidFormula = (acid.formula || acid.symbol || '');
+            const acidFormulaDecoded = decodeSubscript(rawAcidFormula).replace(/\s/g, '');
+            if (acidFormulaDecoded === 'H2CO3') {
+                const metalName = carbonate.name.replace(' carbonate', '').replace('(II)', '').replace('(III)', '').trim();
+                const metalElement = elementsData.find(el => el.name.toLowerCase() === metalName.toLowerCase());
+                if (!metalElement) return null;
+                const cation = {
+                    symbol: metalElement.symbol + (metalElement.oxidationStates ? superscriptNumber(Math.abs(metalElement.oxidationStates[0])) : '⁺'),
+                    charge: metalElement.oxidationStates ? Math.abs(metalElement.oxidationStates[0]) : 2,
+                    root: metalElement.symbol,
+                    name: metalElement.name
+                };
+                const hco3 = { symbol: 'HCO₃⁻', charge: -1, root: 'HCO₃', name: 'Hydrogencarbonate' };
+                const saltFormula = buildIonicFormula(cation, hco3);
+                const solubility = checkSolubility(cation.root, 'HCO3', saltFormula);
+                const balanced = `${carbonate.formula || carbonate.symbol} + H₂CO₃ → ${saltFormula}`;
+                return [
+                    { symbol: saltFormula, name: metalName + ' hydrogencarbonate', formula: saltFormula, type: 'salt', isAqueous: solubility, balanced }
+                ];
+            }
+            // --- End special case ---
+
             const acidAnion = getAnionFromAcid(acid);
             const metalName = carbonate.name.replace(' carbonate', '').replace('(II)', '').replace('(III)', '').trim();
             const metalElement = elementsData.find(el => el.name.toLowerCase() === metalName.toLowerCase());
@@ -886,8 +915,11 @@ function handleReaction(dragData, event, targetElementOrIon) {
         if (ionA && ionB) {
             result = reactIons(ionA, ionB);
         } else if ((reactantA || productA) && (reactantB || productB)) {
-            const symA = reactantA ? normalizeSymbol(reactantA.symbol) : normalizeSymbol(productA.symbol);
-            const symB = reactantB ? normalizeSymbol(reactantB.symbol) : normalizeSymbol(productB.symbol);
+            // Decode subscripts so CO₂ becomes CO2, H₂O becomes H2O – matches reactionMap keys
+            const rawSymA = reactantA ? reactantA.symbol : productA.symbol;
+            const rawSymB = reactantB ? reactantB.symbol : productB.symbol;
+            const symA = rawSymA ? decodeSubscript(rawSymA).replace(/\s/g, '') : '';
+            const symB = rawSymB ? decodeSubscript(rawSymB).replace(/\s/g, '') : '';
             const key1 = symA + '+' + symB, key2 = symB + '+' + symA;
             const reaction = reactionMap[key1] || reactionMap[key2];
             if (reaction) {
@@ -991,6 +1023,16 @@ function reactIons(ionA, ionB) {
         anionName = anionRoot;
     }
     let name = cation.name + ' ' + anionName.toLowerCase();
+        // Merge H⁺ with anions that already contain hydrogen (HCO₃⁻, HSO₄⁻)
+    if (cation.symbol === 'H⁺' && anionPart[0] === 'H') {
+        // Remove the leading H from the anion part, then prepend H₂
+        const restOfAnion = anionPart.slice(1);   // e.g. "CO₃", "SO₄"
+        formula = 'H₂' + restOfAnion;              // H₂CO₃, H₂SO₄
+        // Update name accordingly
+        if (anionPart === 'HCO₃') name = 'Carbonic acid';
+        else if (anionPart === 'HSO₄') name = 'Sulfuric acid';
+        else name = 'Hydrogen ' + anion.name.toLowerCase();
+    }
     if (formula === 'HOH') { formula = 'H₂O'; name = 'Water'; }
     const isAqueous = checkSolubility(cationRoot, anionRoot, formula);
     let balanced = '';
