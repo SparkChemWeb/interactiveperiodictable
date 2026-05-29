@@ -1138,10 +1138,25 @@ body.ion-mode .info-btn {
         min-width: 280px;
         max-width: 90vw;
     }
-    #log-overlay {
-        right: 10px;
-    }
-    #ions-overlay {
-        left: 10px;
-    }
+    #log-overlay { right: 10px; }
+    #ions-overlay { left: 10px; }
+}
+
+/* Extra small screens (iPhone 6/7/8/SE, etc.) */
+@media (max-width: 500px) {
+    .atomic-number { display: none; }
+    .state-symbol { display: none; }
+    .element-card { padding: 1px; }
+    .symbol { font-size: 1rem; }
+    .pressure-overlay { display: none; }
+    .catalyst-overlay { display: none; }
+
+    h1 { font-size: 1.2rem; }
+    .tutorial-content { padding: 20px; max-width: 95vw; }
+    .tutorial-content h2 { font-size: 1.2rem; }
+    .tutorial-content p { font-size: 0.85rem; }
+    .tutorial-buttons button { font-size: 0.8rem; padding: 6px 14px; }
+    .header-row { grid-template-columns: 1fr auto 1fr; margin-bottom: 5px; }
+    .mode-btn, .clear-btn { font-size: 0.8rem; padding: 4px 8px; }
+    .help-btn { width: 28px; height: 28px; font-size: 0.9rem; }
 }
