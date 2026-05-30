@@ -1206,13 +1206,7 @@ body.ion-mode .info-btn {
 
     /* Info button – nearly invisible, won’t block taps for cycling oxidation state */
     .info-btn {
-        width: 4px;
-        height: 4px;
-        font-size: 0.3rem;
-        top: 0;
-        right: 0;
-        opacity: 0.5;         /* barely visible – still there if needed */
-        border-radius: 50%;
+        display: none !important;
     }
 }
 
