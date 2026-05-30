@@ -1096,6 +1096,9 @@ body.ion-mode .info-btn {
 /* ============================================
    RESPONSIVE – phones & small tablets (≤900px)
    ============================================ */
+/* ============================================
+   RESPONSIVE – phones & small tablets (≤900px)
+   ============================================ */
 @media (max-width: 900px) {
     body {
         padding: 0 5px;
@@ -1188,32 +1191,39 @@ body.ion-mode .info-btn {
         padding: 4px 6px;
     }
 
+    /* Tutorial – drastically smaller so it won’t overlap the ions palette */
     .tutorial-content {
-        padding: 10px 15px;
-        max-width: 92vw;
-        border-radius: 14px;
-        max-height: 55vh;
-        font-size: 0.8rem;
+        padding: 6px 10px;
+        max-width: 88vw;
+        border-radius: 10px;
+        max-height: 35vh;          /* very short – sits well above the bottom overlays */
+        font-size: 0.65rem;
+        margin-bottom: 45px;       /* lift it further up */
     }
-    .tutorial-content h2 { font-size: 1rem; }
-    .tutorial-content p { font-size: 0.7rem; margin: 6px 0; }
-    .tutorial-buttons button { font-size: 0.7rem; padding: 4px 10px; }
+    .tutorial-content h2 { font-size: 0.85rem; }
+    .tutorial-content p { font-size: 0.6rem; margin: 3px 0; }
+    .tutorial-buttons button { font-size: 0.6rem; padding: 3px 8px; }
 
+    /* Info button – nearly invisible, won’t block taps for cycling oxidation state */
     .info-btn {
-        width: 12px;
-        height: 12px;
-        font-size: 0.5rem;
+        width: 8px;
+        height: 8px;
+        font-size: 0.4rem;
+        top: 1px;
+        right: 1px;
     }
 }
 
-/* Even smaller phones (≤500px) */
+/* ============================================
+   Extra small phones (≤500px)
+   ============================================ */
 @media (max-width: 500px) {
     h1 { font-size: 1.1rem; }
     .mode-btn, .clear-btn { font-size: 0.7rem; padding: 3px 6px; }
-    .tutorial-content { padding: 12px 16px; }
-    .tutorial-content h2 { font-size: 1rem; }
-    .tutorial-content p { font-size: 0.7rem; }
-    .tutorial-buttons button { font-size: 0.7rem; }
+    .tutorial-content { padding: 8px 12px; }
+    .tutorial-content h2 { font-size: 0.8rem; }
+    .tutorial-content p { font-size: 0.6rem; }
+    .tutorial-buttons button { font-size: 0.6rem; }
     #temp-slider, #pressure-slider { width: 80px; }
     .catalyst-overlay select { width: 100px; }
     .product-card { width: 50px !important; height: 50px !important; }
