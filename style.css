@@ -1158,29 +1158,47 @@ body.ion-mode .info-btn {
     #temp-slider, #pressure-slider { width: 100px; }
     .catalyst-overlay select { width: 120px; }
 
-    /* Product & palette cards */
+    /* Product cards */
     .product-card {
         width: 60px !important;
         height: 60px !important;
         font-size: 0.8rem;
     }
+
+    /* Palette cards – smaller across the board */
     .palette-card {
-        width: 60px !important;
-        height: 60px !important;
-        font-size: 0.7rem;
+        width: 50px !important;
+        height: 50px !important;
+        font-size: 0.65rem;
     }
 
     /* Overlay panels (log, ions) – narrower and smaller font */
     .overlay-panel {
         bottom: 10px;
-        min-width: 250px;
+        min-width: 220px;
         max-width: 90vw;
-        padding: 12px;
-        font-size: 0.8rem;
+        padding: 10px;
+        font-size: 0.75rem;
     }
     #log-overlay { right: 10px; }
     #ions-overlay { left: 10px; }
-    #ion-palette h3 { font-size: 1rem; }
+    #ion-palette h3 { font-size: 0.9rem; }
+
+    /* Ion / product pop‑up – prevent it from covering the whole screen */
+    .ion-popup-content,
+    .product-popup-content {
+        padding: 15px;
+        max-width: 95vw;
+        font-size: 0.8rem;
+    }
+    .ion-popup-content h3,
+    .product-popup-content h3 {
+        font-size: 1.2rem;
+    }
+    .ion-popup-table td,
+    .product-popup-table td {
+        padding: 4px 6px;
+    }
 
     /* Tutorial – compact, stays at bottom */
     .tutorial-content {
@@ -1213,5 +1231,6 @@ body.ion-mode .info-btn {
     #temp-slider, #pressure-slider { width: 80px; }
     .catalyst-overlay select { width: 100px; }
     .product-card { width: 50px !important; height: 50px !important; }
-    .palette-card { width: 50px !important; height: 50px !important; }
+    .palette-card { width: 40px !important; height: 40px !important; font-size: 0.6rem; }
+    .overlay-panel { min-width: 200px; }
 }
