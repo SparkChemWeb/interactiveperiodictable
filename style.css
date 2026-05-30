@@ -1094,22 +1094,19 @@ body.ion-mode .info-btn {
 }
 
 /* ============================================
-   RESPONSIVE ADJUSTMENTS
+   RESPONSIVE – phones & small tablets (≤900px)
    ============================================ */
-@media (max-width: 700px) {
-    /* Body – remove side padding so table uses full width */
+@media (max-width: 900px) {
     body {
         padding: 0 5px;
         margin: 10px auto;
     }
 
-    /* Shrink the table's outer padding */
     :root {
         --card-padding: 8px;
         --card-gap: 4px;
     }
 
-    /* Make period labels narrower */
     .period-labels {
         width: 30px;
         margin-right: 3px;
@@ -1118,14 +1115,12 @@ body.ion-mode .info-btn {
         width: 30px;
     }
 
-    /* Element cards – no mass / state, tiny padding */
     .atomic-number { font-size: 0.5rem; }
     .symbol { font-size: 1.1rem; }
     .atomic-mass { display: none; }
     .state-symbol { display: none; }
     .element-card { padding: 2px 1px; }
 
-    /* Detail view */
     .detail-header { flex-direction: column; gap: 5px; }
     .detail-header h2 { font-size: 2.5rem; }
     .detail-header h1 { font-size: 2rem; }
@@ -1133,19 +1128,16 @@ body.ion-mode .info-btn {
     .f-block-label-card { font-size: 0.8rem; }
     .f-block-label-card span { font-size: 0.5rem; }
 
-    /* Header and buttons */
     h1 { font-size: 1.3rem; }
     .header-row { flex-wrap: wrap; margin-bottom: 5px; }
     .mode-btn, .clear-btn { font-size: 0.75rem; padding: 4px 8px; }
     .help-btn { width: 26px; height: 26px; font-size: 0.8rem; }
 
-    /* Back‑to‑table button smaller */
     #back-to-table {
         font-size: 0.8rem;
         padding: 6px 14px;
     }
 
-    /* Conditions overlay – wrap and compact */
     .conditions-overlay {
         position: static;
         transform: none;
@@ -1158,21 +1150,18 @@ body.ion-mode .info-btn {
     #temp-slider, #pressure-slider { width: 100px; }
     .catalyst-overlay select { width: 120px; }
 
-    /* Product cards */
     .product-card {
         width: 60px !important;
         height: 60px !important;
         font-size: 0.8rem;
     }
 
-    /* Palette cards – smaller across the board */
     .palette-card {
         width: 50px !important;
         height: 50px !important;
         font-size: 0.65rem;
     }
 
-    /* Overlay panels (log, ions) – narrower and smaller font */
     .overlay-panel {
         bottom: 10px;
         min-width: 220px;
@@ -1184,7 +1173,6 @@ body.ion-mode .info-btn {
     #ions-overlay { left: 10px; }
     #ion-palette h3 { font-size: 0.9rem; }
 
-    /* Ion / product pop‑up – prevent it from covering the whole screen */
     .ion-popup-content,
     .product-popup-content {
         padding: 15px;
@@ -1200,7 +1188,6 @@ body.ion-mode .info-btn {
         padding: 4px 6px;
     }
 
-    /* Tutorial – compact, stays at bottom */
     .tutorial-content {
         padding: 10px 15px;
         max-width: 92vw;
@@ -1212,7 +1199,6 @@ body.ion-mode .info-btn {
     .tutorial-content p { font-size: 0.7rem; margin: 6px 0; }
     .tutorial-buttons button { font-size: 0.7rem; padding: 4px 10px; }
 
-    /* Info button smaller */
     .info-btn {
         width: 12px;
         height: 12px;
@@ -1220,7 +1206,7 @@ body.ion-mode .info-btn {
     }
 }
 
-/* Even smaller phones – further reductions */
+/* Even smaller phones (≤500px) */
 @media (max-width: 500px) {
     h1 { font-size: 1.1rem; }
     .mode-btn, .clear-btn { font-size: 0.7rem; padding: 3px 6px; }
