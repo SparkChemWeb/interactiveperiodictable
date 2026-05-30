@@ -1205,7 +1205,7 @@ body.ion-mode .info-btn {
     .tutorial-buttons button { font-size: 0.6rem; padding: 3px 8px; }
 
     /* Info button – nearly invisible, won’t block taps for cycling oxidation state */
-    .info-btn {
+    .element-card .info-btn {
         display: none !important;
     }
 }
