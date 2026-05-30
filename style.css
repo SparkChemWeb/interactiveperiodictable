@@ -1094,15 +1094,9 @@ body.ion-mode .info-btn {
 }
 
 /* ============================================
-   RESPONSIVE – phones & small tablets (≤900px)
+   RESPONSIVE – phones & small tablets (≤1000px)
    ============================================ */
-/* ============================================
-   RESPONSIVE – phones & small tablets (≤900px)
-   ============================================ */
-/* ============================================
-   RESPONSIVE – phones & small tablets (≤900px)
-   ============================================ */
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
     body {
         padding: 0 5px;
         margin: 10px auto;
@@ -1156,14 +1150,12 @@ body.ion-mode .info-btn {
     #temp-slider, #pressure-slider { width: 100px; }
     .catalyst-overlay select { width: 120px; }
 
-    /* Product cards – now same size as palette cards (50px) */
+    /* Product & palette cards – match their sizes */
     .product-card {
         width: 50px !important;
         height: 50px !important;
         font-size: 0.8rem;
     }
-
-    /* Palette cards – already 50px, kept for consistency */
     .palette-card {
         width: 50px !important;
         height: 50px !important;
@@ -1196,7 +1188,7 @@ body.ion-mode .info-btn {
         padding: 4px 6px;
     }
 
-    /* Tutorial – drastically smaller so it won’t overlap the ions palette */
+    /* Tutorial – small, narrow, lifted */
     .tutorial-content {
         padding: 6px 10px;
         max-width: 70vw;
@@ -1209,7 +1201,7 @@ body.ion-mode .info-btn {
     .tutorial-content p { font-size: 0.6rem; margin: 3px 0; }
     .tutorial-buttons button { font-size: 0.6rem; padding: 3px 8px; }
 
-    /* Hide ion‑mode info button on element cards – keep product‑card info visible */
+    /* Hide the ion‑mode info button on element cards */
     .element-card .info-btn {
         display: none !important;
     }
