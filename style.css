@@ -1099,6 +1099,9 @@ body.ion-mode .info-btn {
 /* ============================================
    RESPONSIVE – phones & small tablets (≤900px)
    ============================================ */
+/* ============================================
+   RESPONSIVE – phones & small tablets (≤900px)
+   ============================================ */
 @media (max-width: 900px) {
     body {
         padding: 0 5px;
@@ -1153,12 +1156,14 @@ body.ion-mode .info-btn {
     #temp-slider, #pressure-slider { width: 100px; }
     .catalyst-overlay select { width: 120px; }
 
+    /* Product cards – now same size as palette cards (50px) */
     .product-card {
-        width: 60px !important;
-        height: 60px !important;
+        width: 50px !important;
+        height: 50px !important;
         font-size: 0.8rem;
     }
 
+    /* Palette cards – already 50px, kept for consistency */
     .palette-card {
         width: 50px !important;
         height: 50px !important;
@@ -1196,15 +1201,15 @@ body.ion-mode .info-btn {
         padding: 6px 10px;
         max-width: 70vw;
         border-radius: 10px;
-        max-height: 35vh;          /* very short – sits well above the bottom overlays */
+        max-height: 35vh;
         font-size: 0.65rem;
-        margin-bottom: 45px;       /* lift it further up */
+        margin-bottom: 45px;
     }
     .tutorial-content h2 { font-size: 0.85rem; }
     .tutorial-content p { font-size: 0.6rem; margin: 3px 0; }
     .tutorial-buttons button { font-size: 0.6rem; padding: 3px 8px; }
 
-    /* Info button – nearly invisible, won’t block taps for cycling oxidation state */
+    /* Hide ion‑mode info button on element cards – keep product‑card info visible */
     .element-card .info-btn {
         display: none !important;
     }
