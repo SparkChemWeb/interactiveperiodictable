@@ -1194,7 +1194,7 @@ body.ion-mode .info-btn {
     /* Tutorial – drastically smaller so it won’t overlap the ions palette */
     .tutorial-content {
         padding: 6px 10px;
-        max-width: 88vw;
+        max-width: 70vw;
         border-radius: 10px;
         max-height: 35vh;          /* very short – sits well above the bottom overlays */
         font-size: 0.65rem;
@@ -1206,11 +1206,13 @@ body.ion-mode .info-btn {
 
     /* Info button – nearly invisible, won’t block taps for cycling oxidation state */
     .info-btn {
-        width: 8px;
-        height: 8px;
-        font-size: 0.4rem;
-        top: 1px;
-        right: 1px;
+        width: 4px;
+        height: 4px;
+        font-size: 0.3rem;
+        top: 0;
+        right: 0;
+        opacity: 0.5;         /* barely visible – still there if needed */
+        border-radius: 50%;
     }
 }
 
